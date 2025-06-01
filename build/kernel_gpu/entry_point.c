@@ -1,6 +1,0 @@
-#include "kernel_gpu/hits.c"
-#include "kernel_gpu/main.cl"
-#include "kernel_gpu/ray.c"
-#include "kernel_gpu/vec3.c"
-#include "kernel_gpu/sphere.c"
-#include "kernel_gpu/camera.c"
