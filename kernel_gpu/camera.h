@@ -34,7 +34,7 @@ struct camera {
     struct vec3 pixel00_loc;
 };
 
-void camera_compute_ray(struct ray *r, struct camera const *cam, int i, int j);
+void camera_compute_ray(struct ray *r, struct camera const *cam, int i, int j, int k);
 void create_camera(struct camera *cam, int width, int height, float focal);
 // void ray_color(struct ray *r);
 void color_hit(struct vec3 *color, struct hits const *ray);

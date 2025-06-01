@@ -1,8 +1,4 @@
 #include "sphere.h"
-// #ifdef __cmakelist
-// else
-    // #include "kernel_gpu/sphere.h"
-// #endif
 
 #ifndef STRUCT_H_
     #define STRUCT_H_
@@ -15,6 +11,18 @@ struct primitive {
     enum primitive_e type;
     union {
         struct sphere sphere;
+    } data;
+};
+
+enum light_e {
+    LIGHT_POINT = 1,
+    DIRECTION_LIGHT = 2
+};
+
+struct light {
+    enum light_e type;
+    union {
+        struct vec3 point;
     } data;
 };
 

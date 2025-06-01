@@ -16,7 +16,7 @@
 #include "GPUClasses/GPUKernel.hpp"
 
 #include "kernel_gpu/camera.h"
-#include "kernel_gpu/primitive.h"
+#include "kernel_gpu/struct.h"
 #include "kernel_gpu/sphere.h"
 
 std::vector<struct primitive> create_primitives(void)
@@ -62,7 +62,7 @@ int main()
     gpu::Kernel kernel;
     cl_int err;
     struct camera cam;
-    size_t width = 400, height;
+    size_t width = 1000, height;
 
     double aspect_ratio = 16.0 / 9.0;
     double focal_length = 1.0;

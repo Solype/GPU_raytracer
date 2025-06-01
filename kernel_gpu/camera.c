@@ -1,41 +1,63 @@
 #ifdef __cmakelist
     #include "camera.h"
     #include <stdlib.h>
+    #include <stdio.h>
+    #include <math.h>
+
 #else
     #include "kernel_gpu/camera.h"
-    #define RAND_MAX 3.402823466e+38f
-    
-float rand()
-{
-    int id = get_global_id(0);
-    int seed = (int)(void*)&id;
 
-    seed = (seed << 13) ^ seed;
-    seed = (1.0f - ((seed * (seed * 15731u + 1376312589u)) & 0x7fffffff));
-    float seed_f = (seed < 0) ? seed * -1 : seed;
-    return seed;
-}
 #endif
 
-void camera_compute_ray(struct ray *r, struct camera const *cam, int i, int j)
+int pcg_hash(int input) {
+    input ^= input >> 16;
+    input *= 0x85ebca6b;
+    input ^= input >> 13;
+    input *= 0xc2b2ae35;
+    input ^= input >> 16;
+    return input;
+}
+
+int wang_hash(int seed) {
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+}
+
+float rand01(int k) {
+    float to_return;
+    
+    if (k % 2) {
+        to_return = (float)(pcg_hash(k) & 0x00FFFFFF) / (float)0x01000000;
+    } else {
+        to_return = (float)(wang_hash(k) & 0x00FFFFFF) / (float)0x01000000;
+    }
+    #ifndef __cmakelist
+    if (get_global_id(0) == 0)
+        printf("%d %f\n", k,  to_return);
+    #endif
+    return to_return;
+}
+
+void camera_compute_ray(struct ray *r, struct camera const *cam, int i, int j, int k)
 {
-    float x = ((float)rand()) / RAND_MAX + 1 - 0.5f;
-    float y = ((float)rand()) / RAND_MAX + 1 - 0.5f;
-    struct vec3 pixel_center;
-    struct vec3 ray_dir;
+    float x = rand01(k) - 0.5f;
+    float y = rand01(k + 1) - 0.5f;
     float i_f = (float)i;
     float j_f = (float)j;
+    struct vec3 pixel_center;
 
-    pixel_center.x = cam->pixel00_loc.x + (i_f + x) * cam->pixel_delta_u.x + j_f * cam->pixel_delta_v.x;
-    pixel_center.y = cam->pixel00_loc.y + (i_f + x) * cam->pixel_delta_u.y + j_f * cam->pixel_delta_v.y;
-    pixel_center.z = cam->pixel00_loc.z + (i_f + x) * cam->pixel_delta_u.z + j_f * cam->pixel_delta_v.z;
+    pixel_center.x = cam->pixel00_loc.x + (i_f + x) * cam->pixel_delta_u.x + (j_f + y) * cam->pixel_delta_v.x;
+    pixel_center.y = cam->pixel00_loc.y + (i_f + x) * cam->pixel_delta_u.y + (j_f + y) * cam->pixel_delta_v.y;
+    pixel_center.z = cam->pixel00_loc.z + (i_f + x) * cam->pixel_delta_u.z + (j_f + y) * cam->pixel_delta_v.z;
 
-    ray_dir.x = pixel_center.x - cam->center.x;
-    ray_dir.y = pixel_center.y - cam->center.y;
-    ray_dir.z = pixel_center.z - cam->center.z;
-
-    r->direction = ray_dir;
     r->origin = cam->center;
+    r->direction.x = pixel_center.x - cam->center.x;
+    r->direction.y = pixel_center.y - cam->center.y;
+    r->direction.z = pixel_center.z - cam->center.z;
 }
 
 void create_camera(struct camera *cam, int width, int height, float focal)
@@ -48,7 +70,7 @@ void create_camera(struct camera *cam, int width, int height, float focal)
     cam->view_port_v = (struct vec3){0, -(cam->view_port_height), 0};
     cam->image_height = height;
     cam->image_width = width;
-    cam->sample_pixel = 20;
+    cam->sample_pixel = 100;
 
     cam->pixel_delta_u = (struct vec3){
         .x = cam->view_port_u.x / (float)width,

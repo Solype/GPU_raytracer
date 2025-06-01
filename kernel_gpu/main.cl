@@ -1,5 +1,5 @@
 #include "kernel_gpu/vec3.h"
-#include "kernel_gpu/primitive.h"
+#include "kernel_gpu/struct.h"
 #include "kernel_gpu/ray.h"
 #include "kernel_gpu/camera.h"
 
@@ -22,9 +22,9 @@ int primitive_hits(struct hits *hit, const struct ray *ray, __global const struc
 }
 
 uchar float_to_uchar(float x) {
-    x = fabs(x);                            // transforme en positif
-    x = fmin(fmax(x, 0.0f), 1.0f);          // clamp entre 0.0 et 1.0
-    return (uchar)(x * 255.0f + 0.5f);      // arrondi et cast
+    x = fabs(x);
+    x = fmin(fmax(x, 0.0f), 1.0f);
+    return (uchar)(x * 255.0f + 0.5f);
 }
 
 int primitive_list_hits(struct vec3 *dest, const struct ray *ray, __global const struct primitive *primitives, unsigned int nb_primitives)
@@ -68,7 +68,7 @@ __kernel void compute_ray(
     struct camera cam_copy = *cam;
 
     for (int k = 0; k < cam->sample_pixel; k++) {
-        camera_compute_ray(&my_ray, &cam_copy, i, j);
+        camera_compute_ray(&my_ray, &cam_copy, i, j, k);
         primitive_list_hits(&mycolor, &my_ray, primitives, *nb_primitives);
         final_color.x += mycolor.x;
         final_color.y += mycolor.y;
