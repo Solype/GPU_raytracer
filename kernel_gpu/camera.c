@@ -1,46 +1,14 @@
 #ifdef __cmakelist
     #include "camera.h"
+    #include "my_random.h"
     #include <stdlib.h>
     #include <stdio.h>
     #include <math.h>
 
 #else
     #include "kernel_gpu/camera.h"
-
+    #include "kernel_gpu/my_random.h"
 #endif
-
-int pcg_hash(int input) {
-    input ^= input >> 16;
-    input *= 0x85ebca6b;
-    input ^= input >> 13;
-    input *= 0xc2b2ae35;
-    input ^= input >> 16;
-    return input;
-}
-
-int wang_hash(int seed) {
-    seed = (seed ^ 61) ^ (seed >> 16);
-    seed *= 9;
-    seed = seed ^ (seed >> 4);
-    seed *= 0x27d4eb2d;
-    seed = seed ^ (seed >> 15);
-    return seed;
-}
-
-float rand01(int k) {
-    float to_return;
-    
-    if (k % 2) {
-        to_return = (float)(pcg_hash(k) & 0x00FFFFFF) / (float)0x01000000;
-    } else {
-        to_return = (float)(wang_hash(k) & 0x00FFFFFF) / (float)0x01000000;
-    }
-    #ifndef __cmakelist
-    if (get_global_id(0) == 0)
-        printf("%d %f\n", k,  to_return);
-    #endif
-    return to_return;
-}
 
 void camera_compute_ray(struct ray *r, struct camera const *cam, int i, int j, int k)
 {
