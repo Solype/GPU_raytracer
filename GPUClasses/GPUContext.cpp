@@ -63,3 +63,13 @@ bool gpu::Context::add_ressource(std::size_t id, void *object, std::size_t size,
     this->list_mem.emplace(id, mem);
     return true;
 }
+
+void *gpu::Context::get_common_space_ressources(std::size_t id)
+{
+    auto it = this->list_mem.find(id);
+
+    if (it != list_mem.end()) {
+        return it->second;
+    }
+    return nullptr;
+}

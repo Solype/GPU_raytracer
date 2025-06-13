@@ -20,6 +20,7 @@ namespace gpu {
 
             bool add_ressource(std::size_t id, void *object, std::size_t size, cl_mem_flags flags);
 
+            void *get_common_space_ressources(std::size_t);
             std::map<std::size_t, cl_mem> &get_params(void);
         private:
             std::map<std::size_t, cl_mem> list_mem;

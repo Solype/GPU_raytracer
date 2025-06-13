@@ -52,6 +52,16 @@ void write_ppm(const std::string& filename, int width, int height, const std::ve
     out.close();
 }
 
+void set_cam(struct camera &cam, size_t &width, size_t &height)
+{
+    width = 1000;
+
+    double aspect_ratio = 16.0 / 9.0;
+    double focal_length = 1.0;
+    height = (int)((width) / aspect_ratio);
+    create_camera(&cam, width, height,  focal_length);
+}
+
 int main()
 {
     gpu::Plateform plateform;
@@ -61,16 +71,15 @@ int main()
     gpu::Queue queue;
     gpu::Kernel kernel;
     cl_int err;
-    struct camera cam;
-    size_t width = 1000, height;
+    struct scene_data scenedata;
+    size_t width;
+    size_t height;
 
-    double aspect_ratio = 16.0 / 9.0;
-    double focal_length = 1.0;
-    height = (int)((width) / aspect_ratio);
+    set_cam(scenedata.cam, width, height);
 
-    create_camera(&cam, width, height,  focal_length);
     auto primitives = create_primitives();
-    unsigned int nb_primitives = primitives.size();
+    scenedata.nb_primitives = primitives.size();
+    std::cout << width << " " << height << std::endl;
     std::vector<struct vec3> colors(width * height);
 
     if (plateform.load_noexcept() == false
@@ -86,14 +95,15 @@ int main()
         return 84;
     }
 
-    context.add_ressource(0, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(1, &nb_primitives, sizeof(unsigned int), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(2, &cam, sizeof(cam), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(3, nullptr, sizeof(struct vec3) * colors.size(), CL_MEM_WRITE_ONLY);
+    context.add_ressource(0, nullptr, sizeof(struct vec3) * colors.size(), CL_MEM_WRITE_ONLY);
+    context.add_ressource(1, &scenedata, sizeof(scenedata), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    context.add_ressource(2, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    context.add_ressource(3, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    context.add_ressource(4, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     kernel.load_params(context);
 
     queue.run(kernel, width * height);
-    queue.read_result(context, 3, sizeof(struct vec3) * colors.size(), colors.data());
+    queue.read_result(context, 0, sizeof(struct vec3) * colors.size(), colors.data());
     write_ppm("image.ppm", width, height, colors);
 
     return 0;
