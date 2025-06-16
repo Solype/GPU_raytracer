@@ -25,8 +25,7 @@ int sphere_hits(struct sphere const *sphere, struct ray const *ray, struct hits 
     if (discriminant < 0) {
         return 0;
     }
-    c = (oc_len * oc_len) - ((sphere->radius + 0.0001) * (sphere->radius + 0.0001));
-    discriminant = h * h - a * c;
+
 
     float sqrtd = sqrt(discriminant);
     float root = (h - sqrtd) / a;

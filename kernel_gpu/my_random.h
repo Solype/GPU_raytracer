@@ -11,5 +11,6 @@
 int pcg_hash(int input);
 int wang_hash(int seed);
 float rand01(int k);
+int randint(int seed);
 
 #endif /* !MY_RANDOM_H_ */

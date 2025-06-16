@@ -17,13 +17,14 @@ int wang_hash(int seed) {
     return seed;
 }
 
+int hash1(int seed) {
+    return (seed * 0x5DEECE66DL + 0xBL) & ((1L << 48) - 1);
+}
+
+int randint(int seed) {
+    return wang_hash(seed);
+}
+
 float rand01(int k) {
-    float to_return;
-    
-    if (k % 2) {
-        to_return = (float)(pcg_hash(k) & 0x00FFFFFF) / (float)0x01000000;
-    } else {
-        to_return = (float)(wang_hash(k) & 0x00FFFFFF) / (float)0x01000000;
-    }
-    return to_return;
+    return (float)(wang_hash(k) & 0x00FFFFFF) / (float)0x01000000;
 }

@@ -32,7 +32,7 @@ int primitive_list_hits(struct hits *record, const struct ray *ray, __global con
 {
     struct interval interval = (struct interval){
         .tmax = INFINITY,
-        .tmin = 0
+        .tmin = 0.001f
     };
     struct hits hit = *record;
     int has_hit = 0;
@@ -45,6 +45,20 @@ int primitive_list_hits(struct hits *record, const struct ray *ray, __global con
         }
     }
     return has_hit;
+}
+
+void compute_random_new_ray(struct ray *dest, struct hits *hit, int *rand_seed)
+{
+    *rand_seed = (int)(randint(*rand_seed));
+    dest->direction.x = hit->normal.x + ((rand01(*rand_seed) - 0.5f) * 2);
+
+    *rand_seed = (int)(randint(*rand_seed));
+    dest->direction.y = hit->normal.y + ((rand01(*rand_seed) - 0.5f) * 2);
+
+    *rand_seed = (int)(randint(*rand_seed));
+    dest->direction.z = hit->normal.z + ((rand01(*rand_seed) - 0.5f) * 2);
+
+    dest->origin = hit->point;
 }
 
 void compute_color_ray(
@@ -65,21 +79,22 @@ void compute_color_ray(
     struct hits copy;
     int i = 0;
     float multiplier = 1;
+    int rand_seed = metadata->rand_seed;
 
     for (;primitive_list_hits(&hit, my_ray, primitives, metadata->nb_primitives) == 1 && i < 50; ++i) {
-        metadata->rand_seed = (int)(rand01(metadata->rand_seed) * 100000.0f);
-        my_ray->origin = hit.point;
-        my_ray->direction.x = hit.normal.x + ((rand01(metadata->rand_seed) - 0.5));
-        my_ray->direction.y = hit.normal.y + ((rand01(metadata->rand_seed + (int)(my_ray->direction.x * 1000.0f)) - 0.5));
-        my_ray->direction.z = hit.normal.z + ((rand01(metadata->rand_seed + (int)(my_ray->direction.y * 1000.0f)) - 0.5));
+        compute_random_new_ray(my_ray, &hit, &rand_seed);
         multiplier *= 0.5f;
     }
     if (i == 50) {
         return;
     }
-    dest->x = float_to_uchar(multiplier);
-    dest->y = float_to_uchar(multiplier);
-    dest->z = float_to_uchar(multiplier);
+
+    float a = (hit.normal.y + 1) * 0.5f;
+
+    dest->x = float_to_uchar(multiplier); //  * ((1.0f - a) + (a * 0.5f))
+    dest->y = float_to_uchar(multiplier); //  * ((1.0f - a) + (a * 0.7f))
+    dest->z = float_to_uchar(multiplier); //  * ((1.0f - a) + (a * 1.0f))
+    metadata->rand_seed = rand_seed;
     // *dest = hit.normal;
     // dest->x = float_to_uchar(dest->x);
     // dest->y = float_to_uchar(dest->y);
