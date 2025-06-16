@@ -7,22 +7,22 @@ project(app VERSION 1.0 LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# set_source_files_properties(kernel_gpu/camera.c PROPERTIES LANGUAGE C)
-# set_source_files_properties(kernel_gpu/vec3.c PROPERTIES LANGUAGE C)
+
 # Ajouter l'exécutable (remplace "main.cpp" par le nom de ton fichier source)
 add_executable(app
     main.cpp
-    GPUClasses/GPUProgram.cpp
-    GPUClasses/GPUPlateform.cpp
-    GPUClasses/GPUDevice.cpp
-    GPUClasses/GPUContext.cpp
-    GPUClasses/GPUQueue.cpp
-    GPUClasses/GPUKernel.cpp
+    GPUClasses/src/GPUProgram.cpp
+    GPUClasses/src/GPUPlateform.cpp
+    GPUClasses/src/GPUDevice.cpp
+    GPUClasses/src/GPUContext.cpp
+    GPUClasses/src/GPUQueue.cpp
+    GPUClasses/src/GPUKernel.cpp
     kernel_gpu/vec3.c
     kernel_gpu/camera.c
     kernel_gpu/my_random.c
 )
 target_compile_definitions(app PRIVATE __cmakelist)
+include_directories(${CMAKE_SOURCE_DIR}/GPUClasses/include)
 
 find_library(OpenCL_LIBRARY OpenCL)
 target_link_libraries(app PRIVATE ${OpenCL_LIBRARY})

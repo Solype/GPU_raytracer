@@ -9,11 +9,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "GPUClasses/GPUProgram.hpp"
-#include "GPUClasses/GPUPlateform.hpp"
-#include "GPUClasses/GPUDevice.hpp"
-#include "GPUClasses/GPUQueue.hpp"
-#include "GPUClasses/GPUKernel.hpp"
+#include "GPUProgram.hpp"
+#include "GPUPlateform.hpp"
+#include "GPUDevice.hpp"
+#include "GPUQueue.hpp"
+#include "GPUKernel.hpp"
 
 #include "kernel_gpu/camera.h"
 #include "kernel_gpu/struct.h"
