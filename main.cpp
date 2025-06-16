@@ -15,51 +15,20 @@
 #include "GPUQueue.hpp"
 #include "GPUKernel.hpp"
 
+#include "RayTracerRegistry.hpp"
+
 #include "kernel_gpu/camera.h"
 #include "kernel_gpu/struct.h"
 #include "kernel_gpu/sphere.h"
 #include "kernel_gpu/material_diffuse.h"
 #include "kernel_gpu/material_metal.h"
 
-std::vector<struct material> create_materials(void)
+void register_the_scene(RayTracerRegistry &reg)
 {
-    struct material_diffuse ground = (struct material_diffuse) {.albedo = {.x = 0.8f, .y = 0.8f, .z = 0.0f}};
-    struct material_diffuse center = (struct material_diffuse) {.albedo = {.x = 0.1f, .y = 0.2f, .z = 0.5f}};
-    struct material_metal left = (struct material_metal) { .albedo = {.x = 0.8, .y = 0.8, .z = 0.8}};
-    struct material_metal right = (struct material_metal) { .albedo = {.x = 0.8, .y = 0.6, .z = 0.2}};
-
-    std::vector<struct material> m(4);
-    m[0].type = DIFFUSE;
-    m[1].type = DIFFUSE;
-    m[2].type = METAL;
-    m[3].type = METAL;
-
-    m[0].data.diffuse = ground;
-    m[1].data.diffuse = center;
-    m[2].data.metal = left;
-    m[3].data.metal = right;
-    return m;
-}
-
-std::vector<struct primitive> create_primitives(void)
-{
-    std::vector<struct primitive> A(4);
-    struct sphere ground = (struct sphere){.origin = { .x = 0.0, .y = -100.5, .z = -1}, .radius = 100.0};
-    struct sphere center = (struct sphere){.origin = { .x = 0.0, .y = 0.0, .z = -1.2}, .radius = 0.5};
-    struct sphere left = (struct sphere){.origin = { .x = -1.0, .y = 0.0, .z = -1}, .radius = 0.5};
-    struct sphere right = (struct sphere){.origin = { .x = 1.0, .y = 0.0, .z = -1}, .radius = 0.5};
-
-    struct primitive p_ground = (struct primitive){.type = SHPERE, .mat_id = 0, .data = ground,};
-    struct primitive p_center = (struct primitive){.type = SHPERE, .mat_id = 1, .data = center,};
-    struct primitive p_left = (struct primitive){.type = SHPERE, .mat_id = 2, .data = left,};
-    struct primitive p_right = (struct primitive){.type = SHPERE, .mat_id = 3, .data = right,};
-
-    A[0] = p_ground;
-    A[1] = p_center;
-    A[2] = p_left;
-    A[3] = p_right;
-
-    return A;
+    reg.register_primitive(Sphere(0.0, -100.5, -1, 100.0), Diffuse(0.8, 0.8, 0.0));
+    reg.register_primitive(Sphere(0.0, 0.0, -1.2, 0.5), Diffuse(0.1, 0.2, 0.5));
+    reg.register_primitive(Sphere(-1.0, 0.0, -1, 0.5), Metal(0.8, 0.8, 0.8));
+    reg.register_primitive(Sphere(1.0, 0.0, -1, 0.5), Metal(0.8, 0.6, 0.2));
 }
 
 void write_ppm(const std::string& filename, int width, int height, const std::vector<struct vec3>& colors)
@@ -99,6 +68,7 @@ int main()
     gpu::Context context;
     gpu::Queue queue;
     gpu::Kernel kernel;
+    RayTracerRegistry reg;
     cl_int err;
     struct scene_data scenedata;
     size_t width;
@@ -108,13 +78,11 @@ int main()
     scenedata.rand_seed = rand();
     set_cam(scenedata.cam, width, height);
 
-    auto primitives = create_primitives();
-    auto materials = create_materials();
-    scenedata.nb_primitives = primitives.size();
-    scenedata.nb_materials = materials.size();
-    std::cout << width << " " << height << std::endl;
+    register_the_scene(reg);
+    scenedata.nb_primitives = reg.get_primitives().size();
+    scenedata.nb_materials = reg.get_materials().size();
     std::vector<struct vec3> colors(width * height);
-
+    
     if (plateform.load_noexcept() == false
         || device.load_noexcept(plateform) == false
         || context.init_noexcept(device) == false
@@ -130,9 +98,9 @@ int main()
 
     context.add_ressource(0, nullptr, sizeof(struct vec3) * colors.size(), CL_MEM_WRITE_ONLY);
     context.add_ressource(1, &scenedata, sizeof(scenedata), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(2, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(3, materials.data(), sizeof(struct material) * materials.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(4, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    context.add_ressource(2, reg.get_primitives().data(), sizeof(struct primitive) * scenedata.nb_primitives, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    context.add_ressource(3, reg.get_materials().data(), sizeof(struct material) * scenedata.nb_materials, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    context.add_ressource(4, reg.get_primitives().data(), sizeof(struct primitive) * scenedata.nb_primitives, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     kernel.load_params(context);
 
     queue.run(kernel, width * height);

@@ -18,6 +18,8 @@ class RayTracerRegistry {
         int get_mat_id(IMaterial const &material) const;
         std::vector<struct material> const &get_materials(void) const;
         std::vector<struct primitive> const &get_primitives(void) const;
+        std::vector<struct primitive> &get_primitives(void);
+        std::vector<struct material> &get_materials(void);
 
 
     protected:

@@ -61,3 +61,13 @@ std::vector<struct primitive> const &RayTracerRegistry::get_primitives(void) con
 {
     return this->primitives;
 }
+
+std::vector<struct material> &RayTracerRegistry::get_materials(void)
+{
+    return this->materials;
+}
+
+std::vector<struct primitive> &RayTracerRegistry::get_primitives(void)
+{
+    return this->primitives;
+}
