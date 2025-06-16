@@ -20,6 +20,7 @@ add_executable(app
     GPUClasses/GPUKernel.cpp
     kernel_gpu/vec3.c
     kernel_gpu/camera.c
+    kernel_gpu/my_random.c
 )
 target_compile_definitions(app PRIVATE __cmakelist)
 

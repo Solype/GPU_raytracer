@@ -38,6 +38,7 @@ struct light {
 };
 
 struct scene_data {
+    int rand_seed;
     unsigned int nb_lights;
     unsigned int nb_materials;
     unsigned int nb_primitives;

@@ -75,6 +75,8 @@ int main()
     size_t width;
     size_t height;
 
+    srand((int)time(nullptr));
+    scenedata.rand_seed = rand();
     set_cam(scenedata.cam, width, height);
 
     auto primitives = create_primitives();

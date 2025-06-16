@@ -2,6 +2,7 @@
 #include "kernel_gpu/struct.h"
 #include "kernel_gpu/ray.h"
 #include "kernel_gpu/camera.h"
+#include "kernel_gpu/my_random.h"
 
 #ifndef INFINITY
     #define INFINITY_BITS 0x7F800000
@@ -27,35 +28,67 @@ uchar float_to_uchar(float x) {
     return (uchar)(x * 255.0f + 0.5f);
 }
 
-int primitive_list_hits(struct vec3 *dest, const struct ray *ray, __global const struct primitive *primitives, unsigned int nb_primitives)
+int primitive_list_hits(struct hits *record, const struct ray *ray, __global const struct primitive *primitives, unsigned int nb_primitives)
 {
     struct interval interval = (struct interval){
         .tmax = INFINITY,
         .tmin = 0
     };
+    struct hits hit = *record;
+    int has_hit = 0;
+
+    for (unsigned int i = 0; i < nb_primitives; ++i) {
+        if (primitive_hits(&hit, ray, &primitives[i], &interval)
+            && (hit.t < record->t || record->t < 0)) {
+                *record = hit;
+                has_hit = 1;
+        }
+    }
+    return has_hit;
+}
+
+void compute_color_ray(
+    struct vec3 *dest,
+    struct ray *my_ray,
+    __global struct scene_data *metadata,
+    __global const struct primitive *primitives,
+    __global const struct material *materials,
+    __global const struct light *lights
+)
+{
     struct hits hit = (struct hits){
         .t = -1,
         .point = (struct vec3){.x = 0, .y = 0, .z = 0},
         .normal = (struct vec3){.x = 0, .y = 0, .z = 0},
         .front_face = 0
     };
-    struct hits record = hit;
-    for (unsigned int i = 0; i < nb_primitives; ++i) {
-        if (primitive_hits(&hit, ray, &primitives[i], &interval)
-            && (hit.t < record.t || record.t < 0)) {
-                record = hit;
-        }
+    struct hits copy;
+    int i = 0;
+    float multiplier = 1;
+
+    for (;primitive_list_hits(&hit, my_ray, primitives, metadata->nb_primitives) == 1 && i < 50; ++i) {
+        metadata->rand_seed = (int)(rand01(metadata->rand_seed) * 100000.0f);
+        my_ray->origin = hit.point;
+        my_ray->direction.x = hit.normal.x + ((rand01(metadata->rand_seed) - 0.5));
+        my_ray->direction.y = hit.normal.y + ((rand01(metadata->rand_seed + (int)(my_ray->direction.x * 1000.0f)) - 0.5));
+        my_ray->direction.z = hit.normal.z + ((rand01(metadata->rand_seed + (int)(my_ray->direction.y * 1000.0f)) - 0.5));
+        multiplier *= 0.5f;
     }
-    *dest = record.normal;
-    dest->x = float_to_uchar(dest->x);
-    dest->y = float_to_uchar(dest->y);
-    dest->z = float_to_uchar(dest->z);
-    return 0;
+    if (i == 50) {
+        return;
+    }
+    dest->x = float_to_uchar(multiplier);
+    dest->y = float_to_uchar(multiplier);
+    dest->z = float_to_uchar(multiplier);
+    // *dest = hit.normal;
+    // dest->x = float_to_uchar(dest->x);
+    // dest->y = float_to_uchar(dest->y);
+    // dest->z = float_to_uchar(dest->z);
 }
 
 __kernel void compute_ray(
     __global struct vec3 *color,
-    __global const struct scene_data *metadata,
+    __global struct scene_data *metadata,
     __global const struct primitive *primitives,
     __global const struct material *materials,
     __global const struct light *lights
@@ -72,7 +105,7 @@ __kernel void compute_ray(
 
     for (int k = 0; k < cam_copy.sample_pixel; k++) {
         camera_compute_ray(&my_ray, &cam_copy, i, j, k);
-        primitive_list_hits(&mycolor, &my_ray, primitives, metadata->nb_primitives);
+        compute_color_ray(&mycolor, &my_ray, metadata, primitives, materials, lights);
         final_color.x += mycolor.x;
         final_color.y += mycolor.y;
         final_color.z += mycolor.z;
@@ -83,4 +116,5 @@ __kernel void compute_ray(
     color[id].x =  final_color.x;
     color[id].y =  final_color.y;
     color[id].z =  final_color.z;
+    return;
 }

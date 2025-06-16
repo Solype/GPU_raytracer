@@ -4,3 +4,4 @@
 #include "kernel_gpu/vec3.c"
 #include "kernel_gpu/sphere.c"
 #include "kernel_gpu/camera.c"
+#include "kernel_gpu/my_random.c"
