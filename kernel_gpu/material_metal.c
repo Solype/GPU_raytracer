@@ -12,9 +12,8 @@
     #include "kernel_gpu/material_metal.h"
 #endif
 
-int material_metal(struct material_metal const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation, struct ray *scattered)
+int material_metal_compute(struct material_metal const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation, struct ray *scattered)
 {
-
     vec3_reflect(&scattered->direction, &r_in->direction, &rec->normal);
     scattered->origin = rec->point;
     *attenuation = mat->albedo;

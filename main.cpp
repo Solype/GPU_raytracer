@@ -18,17 +18,46 @@
 #include "kernel_gpu/camera.h"
 #include "kernel_gpu/struct.h"
 #include "kernel_gpu/sphere.h"
+#include "kernel_gpu/material_diffuse.h"
+#include "kernel_gpu/material_metal.h"
+
+std::vector<struct material> create_materials(void)
+{
+    struct material_diffuse ground = (struct material_diffuse) {.albedo = {.x = 0.8f, .y = 0.8f, .z = 0.0f}};
+    struct material_diffuse center = (struct material_diffuse) {.albedo = {.x = 0.1f, .y = 0.2f, .z = 0.5f}};
+    struct material_metal left = (struct material_metal) { .albedo = {.x = 0.8, .y = 0.8, .z = 0.8}};
+    struct material_metal right = (struct material_metal) { .albedo = {.x = 0.8, .y = 0.6, .z = 0.2}};
+
+    std::vector<struct material> m(4);
+    m[0].type = DIFFUSE;
+    m[1].type = DIFFUSE;
+    m[2].type = METAL;
+    m[3].type = METAL;
+
+    m[0].data.diffuse = ground;
+    m[1].data.diffuse = center;
+    m[2].data.metal = left;
+    m[3].data.metal = right;
+    return m;
+}
 
 std::vector<struct primitive> create_primitives(void)
 {
-    std::vector<struct primitive> A(2);
-    struct sphere s1 = (struct sphere){.origin = { .x = 0.0, .y = 0.0, .z = -1}, .radius = 0.5};
-    struct sphere s2 = (struct sphere){.origin = { .x = 0.0, .y = -100.5, .z = -1}, .radius = 100.0};
-    struct primitive p1 = (struct primitive){.type = SHPERE, .data = s1};
-    struct primitive p2 = (struct primitive){.type = SHPERE, .data = s2};
+    std::vector<struct primitive> A(4);
+    struct sphere ground = (struct sphere){.origin = { .x = 0.0, .y = -100.5, .z = -1}, .radius = 100.0};
+    struct sphere center = (struct sphere){.origin = { .x = 0.0, .y = 0.0, .z = -1.2}, .radius = 0.5};
+    struct sphere left = (struct sphere){.origin = { .x = -1.0, .y = 0.0, .z = -1}, .radius = 0.5};
+    struct sphere right = (struct sphere){.origin = { .x = 1.0, .y = 0.0, .z = -1}, .radius = 0.5};
 
-    A[0] = p1;
-    A[1] = p2;
+    struct primitive p_ground = (struct primitive){.type = SHPERE, .mat_id = 0, .data = ground,};
+    struct primitive p_center = (struct primitive){.type = SHPERE, .mat_id = 1, .data = center,};
+    struct primitive p_left = (struct primitive){.type = SHPERE, .mat_id = 2, .data = left,};
+    struct primitive p_right = (struct primitive){.type = SHPERE, .mat_id = 3, .data = right,};
+
+    A[0] = p_ground;
+    A[1] = p_center;
+    A[2] = p_left;
+    A[3] = p_right;
 
     return A;
 }
@@ -54,7 +83,7 @@ void write_ppm(const std::string& filename, int width, int height, const std::ve
 
 void set_cam(struct camera &cam, size_t &width, size_t &height)
 {
-    width = 1000;
+    width = 800;
 
     double aspect_ratio = 16.0 / 9.0;
     double focal_length = 1.0;
@@ -80,7 +109,9 @@ int main()
     set_cam(scenedata.cam, width, height);
 
     auto primitives = create_primitives();
+    auto materials = create_materials();
     scenedata.nb_primitives = primitives.size();
+    scenedata.nb_materials = materials.size();
     std::cout << width << " " << height << std::endl;
     std::vector<struct vec3> colors(width * height);
 
@@ -100,7 +131,7 @@ int main()
     context.add_ressource(0, nullptr, sizeof(struct vec3) * colors.size(), CL_MEM_WRITE_ONLY);
     context.add_ressource(1, &scenedata, sizeof(scenedata), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     context.add_ressource(2, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(3, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    context.add_ressource(3, materials.data(), sizeof(struct material) * materials.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     context.add_ressource(4, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     kernel.load_params(context);
 

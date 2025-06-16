@@ -69,6 +69,24 @@ void compute_random_new_ray(struct ray *dest, struct hits *hit, int *rand_seed)
     dest->origin = hit->point;
 }
 
+int compute_material(__global struct material const *mats, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
+    struct ray *scattered, int *seed)
+{
+    switch (mats[rec->mat_id].type) {
+        case DIFFUSE: {
+            struct material_diffuse mat = mats[rec->mat_id].data.diffuse;
+            return material_diffuse_compute(&mat, r_in, rec, attenuation, scattered, seed);
+        }
+        case METAL: {
+            struct material_metal mat = mats[rec->mat_id].data.metal;
+            return material_metal_compute(&mat, r_in, rec, attenuation, scattered);
+        }
+        default:
+            break;
+    }
+    return 1;
+}
+
 void compute_color_ray(
     struct vec3 *dest,
     struct ray *my_ray,
@@ -87,22 +105,36 @@ void compute_color_ray(
     };
     struct hits copy;
     int i = 0;
-    float multiplier = 1;
     int rand_seed = metadata->rand_seed ^ get_global_id(0);
+    *dest = (struct vec3) {.x = 1.0f, .y = 1.0f, .z = 1.0f};
 
     for (;primitive_list_hits(&hit, my_ray, primitives, metadata->nb_primitives) == 1 && i < 50; ++i) {
-        compute_random_new_ray(my_ray, &hit, &rand_seed);
-        multiplier *= 0.4f;
+        if (!(0 <= hit.mat_id && hit.mat_id < metadata->nb_materials)) {
+            return;
+        }
+        struct ray new_ray;
+        struct vec3 attenuation;
+        if (!compute_material(materials, my_ray, &hit, &attenuation, &new_ray, &rand_seed)) {
+            *dest = (struct vec3){ 0.0f, 0.0f, 0.0f};
+            printf("no compute !\n");
+            return;
+        }
+        *my_ray = new_ray;
+        dest->x *= attenuation.x;
+        dest->y *= attenuation.y;
+        dest->z *= attenuation.z;
+        // compute_random_new_ray(my_ray, &hit, &rand_seed);
+        // dest->x *= 0.4;
+        // dest->y *= 0.45;
+        // dest->z *= 0.4;
     }
     if (i == 50) {
         return;
     }
+    dest->x = float_to_uchar(dest->x);
+    dest->y = float_to_uchar(dest->y);
+    dest->z = float_to_uchar(dest->z);
 
-    float a = (hit.normal.y + 1) * 0.5f;
-
-    dest->x = float_to_uchar(multiplier * ((1.0f - a) + (a * 0.5f)));
-    dest->y = float_to_uchar(multiplier * ((1.0f - a) + (a * 0.7f)));
-    dest->z = float_to_uchar(multiplier * ((1.0f - a) + (a * 1.0f)));
     metadata->rand_seed = rand_seed;
 }
 

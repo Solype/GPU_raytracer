@@ -1,5 +1,7 @@
 #include "sphere.h"
 #include "camera.h"
+#include "material_diffuse.h"
+#include "material_metal.h"
 
 #ifndef STRUCT_H_
     #define STRUCT_H_
@@ -9,6 +11,7 @@ enum primitive_e {
 };
 enum material_e {
     DIFFUSE = 1,
+    METAL = 2,
 };
 enum light_e {
     LIGHT_POINT = 1,
@@ -19,6 +22,8 @@ enum light_e {
 struct material {
     enum material_e type;
     union {
+        struct material_diffuse diffuse;
+        struct material_metal metal;
     } data;
 };
 
