@@ -16,6 +16,7 @@ struct hits {
     struct vec3 normal;
     struct vec3 point;
     int   front_face;
+    int mat_id;
 };
 
 void hits_set_face_normal(struct hits *hits, struct ray const *ray, struct vec3 const *outward_normal);

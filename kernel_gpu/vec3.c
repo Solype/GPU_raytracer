@@ -59,3 +59,33 @@ void vec3_normalize(struct vec3 *vec)
     vec->y /= len;
     vec->z /= len;
 }
+
+int hash_seed_from_floats(struct vec3 const *normal, struct vec3 const *direction)
+{
+    int x = (int)(normal->x * 73856093.0f);
+    int y = (int)(normal->y * 19349663.0f);
+    int z = (int)(normal->z * 83492791.0f);
+
+    int dx = (int)(direction->x * 1640531513.0f);
+    int dy = (int)(direction->y * 2654435761.0f);
+    int dz = (int)(direction->z * 1013904223.0f);
+
+    int seed = x ^ y ^ z ^ dx ^ dy ^ dz;
+    return seed;
+}
+
+int vec3_near_zero(struct vec3 const *vec)
+{
+    float s = 1e-8f;
+
+    return ((vec->x > 0 ? vec->x : - vec->x) < s && (vec->y > 0 ? vec->y : - vec->y) < s && (vec->z > 0 ? vec->z : - vec->z) < s);
+}
+
+void vec3_reflect(struct vec3 *dest, struct vec3 const *v, struct vec3 const *n)
+{
+    float dot_product = vec3_dot(v, n);
+
+    dest->x = v->x - 2 * dot_product * n->x;
+    dest->y = v->y - 2 * dot_product * n->y;
+    dest->z = v->z - 2 * dot_product * n->z;
+}

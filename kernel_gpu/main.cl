@@ -11,10 +11,10 @@
 
 int primitive_hits(struct hits *hit, const struct ray *ray, __global const struct primitive *p, struct interval *interval)
 {
+    struct primitive primit = *p;
     switch (p->type) {
     case SHPERE : {
-        struct sphere tmp = p->data.sphere;
-        return sphere_hits(&tmp, ray, hit, interval);
+        return sphere_hits(&primit, ray, hit, interval);
     }
     default:
         return 1;
@@ -49,15 +49,23 @@ int primitive_list_hits(struct hits *record, const struct ray *ray, __global con
 
 void compute_random_new_ray(struct ray *dest, struct hits *hit, int *rand_seed)
 {
-    *rand_seed = (int)(randint(*rand_seed));
-    dest->direction.x = hit->normal.x + ((rand01(*rand_seed) - 0.5f) * 2);
+    do {
+        *rand_seed = (int)(randint(*rand_seed));
+        dest->direction.x = ((rand01(*rand_seed) - 0.5f) * 2);
 
-    *rand_seed = (int)(randint(*rand_seed));
-    dest->direction.y = hit->normal.y + ((rand01(*rand_seed) - 0.5f) * 2);
+        *rand_seed = (int)(randint(*rand_seed));
+        dest->direction.y = ((rand01(*rand_seed) - 0.5f) * 2);
 
-    *rand_seed = (int)(randint(*rand_seed));
-    dest->direction.z = hit->normal.z + ((rand01(*rand_seed) - 0.5f) * 2);
+        *rand_seed = (int)(randint(*rand_seed));
+        dest->direction.z = ((rand01(*rand_seed) - 0.5f) * 2);
+    } while (vec3_dot(&dest->direction, &dest->direction) < 1e-40f);
 
+    if (vec3_dot(&dest->direction, &hit->normal) < 0.0f) {
+        dest->direction.x *= -1;
+        dest->direction.y *= -1;
+        dest->direction.z *= -1;
+    }
+    vec3_normalize(&dest->direction);
     dest->origin = hit->point;
 }
 
@@ -74,16 +82,17 @@ void compute_color_ray(
         .t = -1,
         .point = (struct vec3){.x = 0, .y = 0, .z = 0},
         .normal = (struct vec3){.x = 0, .y = 0, .z = 0},
-        .front_face = 0
+        .front_face = 0,
+        .mat_id = -1
     };
     struct hits copy;
     int i = 0;
     float multiplier = 1;
-    int rand_seed = metadata->rand_seed;
+    int rand_seed = metadata->rand_seed ^ get_global_id(0);
 
     for (;primitive_list_hits(&hit, my_ray, primitives, metadata->nb_primitives) == 1 && i < 50; ++i) {
         compute_random_new_ray(my_ray, &hit, &rand_seed);
-        multiplier *= 0.5f;
+        multiplier *= 0.4f;
     }
     if (i == 50) {
         return;
@@ -91,14 +100,10 @@ void compute_color_ray(
 
     float a = (hit.normal.y + 1) * 0.5f;
 
-    dest->x = float_to_uchar(multiplier); //  * ((1.0f - a) + (a * 0.5f))
-    dest->y = float_to_uchar(multiplier); //  * ((1.0f - a) + (a * 0.7f))
-    dest->z = float_to_uchar(multiplier); //  * ((1.0f - a) + (a * 1.0f))
+    dest->x = float_to_uchar(multiplier * ((1.0f - a) + (a * 0.5f)));
+    dest->y = float_to_uchar(multiplier * ((1.0f - a) + (a * 0.7f)));
+    dest->z = float_to_uchar(multiplier * ((1.0f - a) + (a * 1.0f)));
     metadata->rand_seed = rand_seed;
-    // *dest = hit.normal;
-    // dest->x = float_to_uchar(dest->x);
-    // dest->y = float_to_uchar(dest->y);
-    // dest->z = float_to_uchar(dest->z);
 }
 
 __kernel void compute_ray(

@@ -21,6 +21,9 @@ void vec3_normalize(struct vec3 *vec);
 void vec3_cross(struct vec3 *dest, struct vec3 const *v1, struct vec3 const *v2);
 float vec3_dot(struct vec3 const *v1, struct vec3 const *v2);
 float vec3_length(struct vec3 const *vec);
+int hash_seed_from_floats(struct vec3 const *normal, struct vec3 const *direction);
+int vec3_near_zero(struct vec3 const *vec);
+void vec3_reflect(struct vec3 *dest, struct vec3 const *v, struct vec3 const *n);
 
 
 #endif /* !VEC3_H_ */

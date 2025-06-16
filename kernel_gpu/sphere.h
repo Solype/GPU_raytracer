@@ -23,7 +23,7 @@ struct sphere {
     float radius;
 };
 
-int sphere_hits(struct sphere const *sphere, struct ray const *ray, struct hits *rec, struct interval *interval);
+int sphere_hits(void const *sphere, struct ray const *ray, struct hits *rec, struct interval *interval);
 
 #endif /* !SCHERE_H_ */
 

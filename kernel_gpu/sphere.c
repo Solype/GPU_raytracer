@@ -1,15 +1,19 @@
 #ifdef __cmakelist
+    #include "struct.h"
     #include "sphere.h"
 #else
     #include "kernel_gpu/sphere.h"
+    #include "kernel_gpu/struct.h"
 #endif
 
-int sphere_hits(struct sphere const *sphere, struct ray const *ray, struct hits *rec, struct interval *interval)
+int sphere_hits(void const *void_primitive, struct ray const *ray, struct hits *rec, struct interval *interval)
 {
     struct vec3 oc;
     struct vec3 normal;
     float oc_len;
     float ray_dir_len;
+    struct primitive *primitive = (struct primitive *)void_primitive;
+    struct sphere *sphere = &primitive->data.sphere;
 
     oc.x = sphere->origin.x - ray->origin.x;
     oc.y = sphere->origin.y - ray->origin.y;
@@ -35,6 +39,7 @@ int sphere_hits(struct sphere const *sphere, struct ray const *ray, struct hits 
             return 0;
         }
     }
+    rec->mat_id = primitive->mat_id;
     rec->t = root;
     rec->point.x = ray->origin.x + rec->t * ray->direction.x;
     rec->point.y = ray->origin.y + rec->t * ray->direction.y;
