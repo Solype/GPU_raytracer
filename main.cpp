@@ -20,14 +20,14 @@
 #include "kernel_gpu/camera.h"
 #include "kernel_gpu/struct.h"
 #include "kernel_gpu/sphere.h"
-#include "kernel_gpu/material_diffuse.h"
-#include "kernel_gpu/material_metal.h"
+#include "kernel_gpu/materials.h"
+#include "kernel_gpu/materials.h"
 
 void register_the_scene(RayTracerRegistry &reg)
 {
     reg.register_primitive(Sphere(0.0, -100.5, -1, 100.0), Diffuse(0.8, 0.8, 0.0));
     reg.register_primitive(Sphere(0.0, 0.0, -1.2, 0.5), Diffuse(0.1, 0.2, 0.5));
-    reg.register_primitive(Sphere(-1.0, 0.0, -1.0, 0.5), Metal(0.8, 0.8, 0.8, 0.3));
+    reg.register_primitive(Sphere(-1.0, 0.0, -1.0, 0.5), Metal(0.8, 0.8, 0.8, 0.0));
     reg.register_primitive(Sphere(1.0, 0.0, -1.0, 0.5), Metal(0.8, 0.6, 0.2, 1.0));
 }
 

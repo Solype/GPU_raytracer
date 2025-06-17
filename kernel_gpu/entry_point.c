@@ -5,5 +5,4 @@
 #include "kernel_gpu/sphere.c"
 #include "kernel_gpu/camera.c"
 #include "kernel_gpu/my_random.c"
-#include "kernel_gpu/material_diffuse.c"
-#include "kernel_gpu/material_metal.c"
+#include "kernel_gpu/materials.c"

@@ -1,7 +1,7 @@
 #include "sphere.h"
 #include "camera.h"
-#include "material_diffuse.h"
-#include "material_metal.h"
+#include "materials.h"
+#include "materials.h"
 
 #ifndef STRUCT_H_
     #define STRUCT_H_

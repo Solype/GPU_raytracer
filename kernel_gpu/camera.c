@@ -12,20 +12,20 @@
 
 void camera_compute_ray(struct ray *r, struct camera const *cam, int i, int j, int k)
 {
-    float x = rand01(k) - 0.5f;
-    float y = rand01(k + 1) - 0.5f;
+    float x = rand01(k + i + j) - 0.5f;
+    float y = rand01(k + 1 + i + j) - 0.5f;
     float i_f = (float)i;
     float j_f = (float)j;
-    struct vec3 pixel_center;
+    struct vec3 pixel_coorinate;
 
-    pixel_center.x = cam->pixel00_loc.x + (i_f + x) * cam->pixel_delta_u.x + (j_f + y) * cam->pixel_delta_v.x;
-    pixel_center.y = cam->pixel00_loc.y + (i_f + x) * cam->pixel_delta_u.y + (j_f + y) * cam->pixel_delta_v.y;
-    pixel_center.z = cam->pixel00_loc.z + (i_f + x) * cam->pixel_delta_u.z + (j_f + y) * cam->pixel_delta_v.z;
+    pixel_coorinate.x = cam->pixel00_loc.x + (i_f + x) * cam->pixel_delta_u.x + (j_f + y) * cam->pixel_delta_v.x;
+    pixel_coorinate.y = cam->pixel00_loc.y + (i_f + x) * cam->pixel_delta_u.y + (j_f + y) * cam->pixel_delta_v.y;
+    pixel_coorinate.z = cam->pixel00_loc.z + (i_f + x) * cam->pixel_delta_u.z + (j_f + y) * cam->pixel_delta_v.z;
 
     r->origin = cam->center;
-    r->direction.x = pixel_center.x - cam->center.x;
-    r->direction.y = pixel_center.y - cam->center.y;
-    r->direction.z = pixel_center.z - cam->center.z;
+    r->direction.x = pixel_coorinate.x - cam->center.x;
+    r->direction.y = pixel_coorinate.y - cam->center.y;
+    r->direction.z = pixel_coorinate.z - cam->center.z;
 }
 
 void create_camera(struct camera *cam, int width, int height, float focal)
@@ -33,7 +33,7 @@ void create_camera(struct camera *cam, int width, int height, float focal)
     cam->focal_length = focal;
     cam->view_port_height = 2;
     cam->view_port_width = cam->view_port_height * ((float)width / (float)height);
-    cam->center = (struct vec3){0, 0, 0};
+    cam->center = (struct vec3){-0.6f, 0.0f, 0.2f};
     cam->view_port_u = (struct vec3){cam->view_port_width, 0, 0};
     cam->view_port_v = (struct vec3){0, -(cam->view_port_height), 0};
     cam->image_height = height;

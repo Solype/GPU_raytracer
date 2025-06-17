@@ -3,14 +3,29 @@
     #include "ray.h"
     #include "hits.h"
     #include "interval.h"
-    #include "material_metal.h"
+    #include "material_diffuse.h"
 #else
     #include "kernel_gpu/vec3.h"
     #include "kernel_gpu/ray.h"
     #include "kernel_gpu/hits.h"
     #include "kernel_gpu/interval.h"
-    #include "kernel_gpu/material_metal.h"
+    #include "kernel_gpu/materials.h"
 #endif
+
+int material_diffuse_compute(struct material_diffuse const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
+    struct ray *scattered, int *seed)
+{
+    vec3_random_unit(&scattered->direction, seed);
+    if (vec3_dot(&scattered->direction, &rec->normal) < 0.0f) {
+        scattered->direction.x *= -1;
+        scattered->direction.y *= -1;
+        scattered->direction.z *= -1;
+    }
+    vec3_normalize(&scattered->direction);
+    scattered->origin = rec->point;
+    *attenuation = mat->albedo;
+    return 1;
+}
 
 int material_metal_compute(struct material_metal const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
     struct ray *scattered, int *seed)
@@ -31,3 +46,4 @@ int material_metal_compute(struct material_metal const *mat, const struct ray *r
     vec3_normalize(&scattered->direction);
     return vec3_dot(&scattered->direction, &rec->normal) > 0;
 }
+

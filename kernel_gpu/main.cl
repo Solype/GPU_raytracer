@@ -123,8 +123,8 @@ void compute_color_ray(
         if (!(0 <= hit.mat_id && hit.mat_id < metadata->nb_materials)) {
             return;
         }
-        struct ray new_ray = (struct ray){. origin = (struct vec3){ .x = 0.0, .y = 0.0, .z = 0.0}, .direction = (struct vec3){ .x = 0.0, .y = 0.0, .z = 0.0}};
-        struct vec3 attenuation = (struct vec3){ .x = 0.0, .y = 0.0, .z = 0.0};
+        struct ray new_ray = (struct ray){. origin = (struct vec3){ .x = 0.0f, .y = 0.0f, .z = 0.0f}, .direction = (struct vec3){ .x = 0.0f, .y = 0.0f, .z = 0.0f}};
+        struct vec3 attenuation = (struct vec3){ .x = 0.0f, .y = 0.0f, .z = 0.0f};
         if (!compute_material(materials, my_ray, &hit, &attenuation, &new_ray, &rand_seed)) {
             *dest = (struct vec3){ 0.0f, 0.0f, 0.0f};
             return;
