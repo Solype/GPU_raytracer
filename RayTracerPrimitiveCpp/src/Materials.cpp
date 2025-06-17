@@ -33,8 +33,9 @@ Diffuse::Diffuse(float red, float green, float blue)
     this->mat.data.diffuse.albedo = (struct vec3){.x = red, .y = green, .z = blue};
 }
 
-Metal::Metal(float red, float green, float blue)
+Metal::Metal(float red, float green, float blue, float fuzz)
 {
     this->mat.type = METAL;
     this->mat.data.metal.albedo = (struct vec3){.x = red, .y = green, .z = blue};
+    this->mat.data.metal.fuzz = std::min(std::max(0.0f, fuzz), 1.0f);
 }

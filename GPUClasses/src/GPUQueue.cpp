@@ -44,7 +44,7 @@ void gpu::Queue::run(gpu::Kernel const &kernel, std::size_t global_work_size)
     cl_int err;
 
     err = clEnqueueNDRangeKernel(this->queue, kernel.get_kernel(), 1, nullptr, &global_work_size, nullptr, 0, nullptr, nullptr);
-    clFlush(this->queue);
+    // clFlush(this->queue);
     clFinish(this->queue);
 }
 

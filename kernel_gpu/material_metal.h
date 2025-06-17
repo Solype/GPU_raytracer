@@ -15,8 +15,10 @@
 
 struct material_metal {
     struct vec3 albedo;
+    float fuzz;
 };
     
-int material_metal_compute(struct material_metal const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation, struct ray *scattered);
+int material_metal_compute(struct material_metal const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
+    struct ray *scattered, int *seed);
 
 #endif /* !MATERIAL_METAL_H_ */

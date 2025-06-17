@@ -24,6 +24,7 @@ float vec3_length(struct vec3 const *vec);
 int hash_seed_from_floats(struct vec3 const *normal, struct vec3 const *direction);
 int vec3_near_zero(struct vec3 const *vec);
 void vec3_reflect(struct vec3 *dest, struct vec3 const *v, struct vec3 const *n);
+void vec3_random_unit(struct vec3 *dest, int *rand_seed);
 
 
 #endif /* !VEC3_H_ */

@@ -51,7 +51,7 @@ class Diffuse : public AMaterial {
 
 class Metal : public AMaterial {
     public :
-        Metal(float red, float green, float blue);
+        Metal(float red, float green, float blue, float fuzz = 1.0f);
 };
 
 #endif /* !MATERIAL_HPP_ */

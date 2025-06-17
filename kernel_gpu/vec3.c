@@ -2,6 +2,9 @@
 
 #ifdef __cmakelist
     #include <math.h>
+    #include "my_random.h"
+#else
+    #include "kernel_gpu/my_random.h"
 #endif
 
 void vec3_add(struct vec3 *dest, const struct vec3 *source)
@@ -88,4 +91,22 @@ void vec3_reflect(struct vec3 *dest, struct vec3 const *v, struct vec3 const *n)
     dest->x = v->x - 2 * dot_product * n->x;
     dest->y = v->y - 2 * dot_product * n->y;
     dest->z = v->z - 2 * dot_product * n->z;
+}
+
+void vec3_random_unit(struct vec3 *dest, int *rand_seed)
+{
+    *rand_seed = (int)(randint(*rand_seed));
+    dest->x = ((rand01(*rand_seed) - 0.5f) * 2);
+
+    *rand_seed = (int)(randint(*rand_seed));
+    dest->y = ((rand01(*rand_seed) - 0.5f) * 2);
+
+    *rand_seed = (int)(randint(*rand_seed));
+    dest->z = ((rand01(*rand_seed) - 0.5f) * 2);
+    if (vec3_dot(dest, dest) < 1e-35f) {
+        dest->x *= 10;
+        dest->y *= 10;
+        dest->z *= 10;
+    }
+    vec3_normalize(dest);
 }

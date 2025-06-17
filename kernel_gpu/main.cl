@@ -79,12 +79,23 @@ int compute_material(__global struct material const *mats, const struct ray *r_i
         }
         case METAL: {
             struct material_metal mat = mats[rec->mat_id].data.metal;
-            return material_metal_compute(&mat, r_in, rec, attenuation, scattered);
+            return material_metal_compute(&mat, r_in, rec, attenuation, scattered, seed);
         }
         default:
             break;
     }
     return 1;
+}
+
+void init_base_color(struct vec3 *vec, struct ray const *r)
+{
+    float a = 0.5f * (r->direction.y  + 1);
+
+    *vec = (struct vec3) {
+        .x = (1 - a) + (a * 0.5f),
+        .y = (1 - a) + (a * 0.7f),
+        .z = (1 - a) + (a * 1.0f)
+    };
 }
 
 void compute_color_ray(
@@ -106,27 +117,22 @@ void compute_color_ray(
     struct hits copy;
     int i = 0;
     int rand_seed = metadata->rand_seed ^ get_global_id(0);
-    *dest = (struct vec3) {.x = 1.0f, .y = 1.0f, .z = 1.0f};
+    init_base_color(dest, my_ray);
 
     for (;primitive_list_hits(&hit, my_ray, primitives, metadata->nb_primitives) == 1 && i < 50; ++i) {
         if (!(0 <= hit.mat_id && hit.mat_id < metadata->nb_materials)) {
             return;
         }
-        struct ray new_ray;
-        struct vec3 attenuation;
+        struct ray new_ray = (struct ray){. origin = (struct vec3){ .x = 0.0, .y = 0.0, .z = 0.0}, .direction = (struct vec3){ .x = 0.0, .y = 0.0, .z = 0.0}};
+        struct vec3 attenuation = (struct vec3){ .x = 0.0, .y = 0.0, .z = 0.0};
         if (!compute_material(materials, my_ray, &hit, &attenuation, &new_ray, &rand_seed)) {
             *dest = (struct vec3){ 0.0f, 0.0f, 0.0f};
-            printf("no compute !\n");
             return;
         }
         *my_ray = new_ray;
         dest->x *= attenuation.x;
         dest->y *= attenuation.y;
         dest->z *= attenuation.z;
-        // compute_random_new_ray(my_ray, &hit, &rand_seed);
-        // dest->x *= 0.4;
-        // dest->y *= 0.45;
-        // dest->z *= 0.4;
     }
     if (i == 50) {
         return;
