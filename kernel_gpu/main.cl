@@ -81,6 +81,10 @@ int compute_material(__global struct material const *mats, const struct ray *r_i
             struct material_metal mat = mats[rec->mat_id].data.metal;
             return material_metal_compute(&mat, r_in, rec, attenuation, scattered, seed);
         }
+        case DIELECTRIC: {
+            struct material_dielectric mat = mats[rec->mat_id].data.dielectric;
+            return material_dielectric_compute(&mat, r_in, rec, attenuation, scattered, seed);
+        }
         default:
             break;
     }

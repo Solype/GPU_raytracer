@@ -54,4 +54,9 @@ class Metal : public AMaterial {
         Metal(float red, float green, float blue, float fuzz = 1.0f);
 };
 
+class Dielectric : public AMaterial {
+    public :
+        Dielectric(float refraction_index);
+};
+
 #endif /* !MATERIAL_HPP_ */

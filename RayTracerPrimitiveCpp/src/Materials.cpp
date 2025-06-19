@@ -39,3 +39,9 @@ Metal::Metal(float red, float green, float blue, float fuzz)
     this->mat.data.metal.albedo = (struct vec3){.x = red, .y = green, .z = blue};
     this->mat.data.metal.fuzz = std::min(std::max(0.0f, fuzz), 1.0f);
 }
+
+Dielectric::Dielectric(float index)
+{
+    this->mat.type = DIELECTRIC;
+    this->mat.data.dielectric.refraction_index = index;
+}

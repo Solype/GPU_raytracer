@@ -33,7 +33,7 @@ void create_camera(struct camera *cam, int width, int height, float focal)
     cam->focal_length = focal;
     cam->view_port_height = 2;
     cam->view_port_width = cam->view_port_height * ((float)width / (float)height);
-    cam->center = (struct vec3){-0.6f, 0.0f, 0.2f};
+    cam->center = (struct vec3){0.0f, 0.0f, 0.0f};
     cam->view_port_u = (struct vec3){cam->view_port_width, 0, 0};
     cam->view_port_v = (struct vec3){0, -(cam->view_port_height), 0};
     cam->image_height = height;

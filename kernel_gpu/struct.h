@@ -12,7 +12,9 @@ enum primitive_e {
 enum material_e {
     DIFFUSE = 1,
     METAL = 2,
+    DIELECTRIC = 3,
 };
+
 enum light_e {
     LIGHT_POINT = 1,
     DIRECTION_LIGHT = 2
@@ -24,6 +26,7 @@ struct material {
     union {
         struct material_diffuse diffuse;
         struct material_metal metal;
+        struct material_dielectric dielectric;
     } data;
 };
 
