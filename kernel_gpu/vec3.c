@@ -82,15 +82,6 @@ int vec3_near_zero(struct vec3 const *vec)
     return ((vec->x > 0 ? vec->x : - vec->x) < s && (vec->y > 0 ? vec->y : - vec->y) < s && (vec->z > 0 ? vec->z : - vec->z) < s);
 }
 
-void vec3_reflect(struct vec3 *dest, struct vec3 const *v, struct vec3 const *n)
-{
-    float dot_product = vec3_dot(v, n);
-
-    dest->x = v->x - 2 * dot_product * n->x;
-    dest->y = v->y - 2 * dot_product * n->y;
-    dest->z = v->z - 2 * dot_product * n->z;
-}
-
 void vec3_random_unit(struct vec3 *dest, int *rand_seed)
 {
     *rand_seed = (int)(randint(*rand_seed));
@@ -109,6 +100,15 @@ void vec3_random_unit(struct vec3 *dest, int *rand_seed)
     vec3_normalize(dest);
 }
 
+void vec3_reflect(struct vec3 *dest, struct vec3 const *v, struct vec3 const *n)
+{
+    float dot_product = vec3_dot(v, n);
+
+    dest->x = v->x - 2 * dot_product * n->x;
+    dest->y = v->y - 2 * dot_product * n->y;
+    dest->z = v->z - 2 * dot_product * n->z;
+}
+
 void vec3_refract(struct vec3 *dest, struct vec3 const *uv, struct vec3 const *n, float etai_over_etat)
 {
     struct vec3 min_uv = *uv;
@@ -121,9 +121,8 @@ void vec3_refract(struct vec3 *dest, struct vec3 const *uv, struct vec3 const *n
     r_out_perp.z = etai_over_etat * (uv->z + (cos_theta * n->z));
 
     struct vec3 r_out_parallel = *n;
-    float aze = sqrt(fabs(1.0f - vec3_dot(&r_out_perp, &r_out_perp)));
-    printf("%f\n", aze);
-    vec3_mul(&r_out_parallel, -aze);
+    float aze = -1 * sqrt(fabs(1.0f - vec3_dot(&r_out_perp, &r_out_perp)));
+    vec3_mul(&r_out_parallel, aze);
 
     dest->x = r_out_perp.x + r_out_parallel.x;
     dest->y = r_out_perp.y + r_out_parallel.y;

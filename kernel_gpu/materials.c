@@ -30,18 +30,18 @@ int material_diffuse_compute(struct material_diffuse const *mat, const struct ra
 int material_metal_compute(struct material_metal const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
     struct ray *scattered, int *seed)
 {
+    float fuzz = mat->fuzz;
     struct vec3 unit_vec;
-    float fuzz = clamp(mat->fuzz, 0.0f, 1.0f);
+    struct vec3 reflected;
+
+    vec3_reflect(&reflected, &r_in->direction, &rec->normal);
+    
     vec3_random_unit(&unit_vec, seed);
-    vec3_reflect(&scattered->direction, &r_in->direction, &rec->normal);
-    unit_vec.x *= fuzz;
-    unit_vec.y *= fuzz;
-    unit_vec.z *= fuzz;
-    scattered->direction.x += unit_vec.x;
-    scattered->direction.y += unit_vec.y;
-    scattered->direction.z += unit_vec.z;
+    vec3_mul(&unit_vec, fuzz);
+    vec3_add(&reflected, &unit_vec);
 
     scattered->origin = rec->point;
+    scattered->direction = reflected;
     *attenuation = mat->albedo;
     vec3_normalize(&scattered->direction);
     return vec3_dot(&scattered->direction, &rec->normal) > 0;
@@ -54,7 +54,7 @@ int material_dielectric_compute(struct material_dielectric const *mat, const str
     attenuation->y = 1.0f;
     attenuation->z = 1.0f;
 
-    float ri = rec->front_face ? (1.0f / mat->refraction_index) : mat->refraction_index;
+    float ri = rec->front_face == 1 ? (1.0f / mat->refraction_index) : mat->refraction_index;
     struct vec3 unit_direction = r_in->direction;
     struct vec3 refracted;
     vec3_normalize(&unit_direction);

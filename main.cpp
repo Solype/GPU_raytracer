@@ -26,8 +26,8 @@
 void register_the_scene(RayTracerRegistry &reg)
 {
     reg.register_primitive(Sphere(0.0, -100.5, -1, 100.0), Diffuse(0.8, 0.8, 0.0));
-    reg.register_primitive(Sphere(0.0, 0.0, -1.2, 0.5), Diffuse(0.1, 0.2, 0.5));
-    reg.register_primitive(Sphere(-1.0, -0.2, -1.0, 0.5), Dielectric(3.0f));
+    reg.register_primitive(Sphere(-1.0, 0.0, -1.2, 0.5), Metal(0.8, 0.6, 0.2, 0.2)); // Dielectric(1.5f));
+    reg.register_primitive(Sphere(0.0, 0.0, -1.0, 0.5), Diffuse(0.1, 0.2, 0.5));
     reg.register_primitive(Sphere(1.0, 0.0, -1.0, 0.5), Metal(0.8, 0.6, 0.2, 1.0));
     // reg.register_primitive(Sphere(-1.0, 0.0, -1.0, 0.5), Metal(0.8, 0.8, 0.8, 0.2));
     // reg.register_primitive(Sphere(0.0, 0.75, 0.25, 0.75), Diffuse(0.8, 0.6, 0.0));

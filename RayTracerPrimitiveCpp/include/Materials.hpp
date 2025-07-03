@@ -22,8 +22,9 @@ namespace std {
                 case DIFFUSE:
                     return h ^ hash<struct vec3>()(m.data.diffuse.albedo);
                 case METAL:
-                    return h ^ hash<struct vec3>()(m.data.metal.albedo);
-                    break;
+                    return h ^ hash<struct vec3>()(m.data.metal.albedo) + (int)(m.data.metal.fuzz * 100);
+                case DIELECTRIC:
+                    return h * (m.data.dielectric.refraction_index * 100);
             }
             return h;
         }
