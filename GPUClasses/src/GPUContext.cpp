@@ -51,8 +51,13 @@ bool gpu::Context::add_ressource(std::size_t id, void *object, std::size_t size,
     cl_int err;
     auto obj_at_id = this->list_mem.find(id);
 
-    if (obj_at_id != this->list_mem.end()) {
+    if (obj_at_id != this->list_mem.end() && obj_at_id->second != nullptr) {
         clReleaseMemObject(obj_at_id->second);
+    }
+    if (size == 0) {
+        std::cerr << "Attention, allocation null" << std::endl;
+        this->list_mem.emplace(id, nullptr);
+        return true;
     }
     mem = clCreateBuffer(this->context, flags, size, object, &err);
     if (err != CL_SUCCESS) {

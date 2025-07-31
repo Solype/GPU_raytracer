@@ -84,18 +84,18 @@ int vec3_near_zero(struct vec3 const *vec)
 
 void vec3_random_unit(struct vec3 *dest, int *rand_seed)
 {
-    *rand_seed = (int)(randint(*rand_seed));
     dest->x = ((rand01(*rand_seed) - 0.5f) * 2);
+    *rand_seed = randint(*rand_seed);
 
-    *rand_seed = (int)(randint(*rand_seed));
     dest->y = ((rand01(*rand_seed) - 0.5f) * 2);
+    *rand_seed = randint(*rand_seed);
 
-    *rand_seed = (int)(randint(*rand_seed));
     dest->z = ((rand01(*rand_seed) - 0.5f) * 2);
+    *rand_seed = randint(*rand_seed);
     if (vec3_dot(dest, dest) < 1e-35f) {
-        dest->x *= 10;
-        dest->y *= 10;
-        dest->z *= 10;
+        dest->x *= 10000;
+        dest->y *= 10000;
+        dest->z *= 10000;
     }
     vec3_normalize(dest);
 }

@@ -138,7 +138,7 @@ void compute_color_ray(
         dest->y *= attenuation.y;
         dest->z *= attenuation.z;
     }
-    if (i == 50) {
+    if (i >= 50) {
         return;
     }
     dest->x = float_to_uchar(dest->x);
