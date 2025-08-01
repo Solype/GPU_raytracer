@@ -36,18 +36,23 @@ int material_metal_compute(struct material_metal const *mat, const struct ray *r
     float fuzz = mat->fuzz;
     struct vec3 unit_vec;
     struct vec3 reflected;
+    struct vec3 save_reflected;
+    float dot = 0;
 
     vec3_reflect(&reflected, &r_in->direction, &rec->normal);
-
+    save_reflected = reflected;
     vec3_random_unit(&unit_vec, seed);
+    if (vec3_dot(&unit_vec, &rec->normal) < 0) {
+        vec3_mul(&unit_vec, -1);
+    }
     vec3_mul(&unit_vec, fuzz);
     vec3_add(&reflected, &unit_vec);
-
+    vec3_normalize(&reflected);
+    dot = vec3_dot(&reflected, &rec->normal);
     scattered->origin = rec->point;
     scattered->direction = reflected;
     *attenuation = mat->albedo;
-    vec3_normalize(&scattered->direction);
-    return vec3_dot(&scattered->direction, &rec->normal) > 0;
+    return 1;
 }
 
 static float reflectance(float cosine, float refraction_index) {
