@@ -57,7 +57,6 @@ int material_metal_compute(struct material_metal const *mat, const struct ray *r
 
 static float reflectance(float cosine, float refraction_index)
 {
-    // Use Schlick's approximation for reflectance.
     float r0 = (1 - refraction_index) / (1 + refraction_index);
     r0 = r0*r0;
     return r0 + (1 - r0) * pow((1 - cosine), 5);
@@ -67,27 +66,20 @@ int material_dielectric_compute(struct material_dielectric const *mat, const str
     struct ray *scattered, int *seed)
 {
     *attenuation = (struct vec3){1.0f, 1.0f, 1.0f};
-    float ri = rec->front_face == 1 ? (1.0f / mat->refraction_index) : mat->refraction_index;
-
+    float ri = rec->front_face ? (1.0f / mat->refraction_index) : mat->refraction_index;
     struct vec3 unit_direction = r_in->direction;
+    struct vec3 refracted;
+
     vec3_normalize(&unit_direction);
-    struct vec3 inverted_unit_direction = unit_direction;
-    vec3_mul(&inverted_unit_direction, -1);
-
-    float cos_theta = fmin(vec3_dot(&inverted_unit_direction, &rec->normal), 1.0f);
-    float sin_theta = sqrt(1.0f - cos_theta * cos_theta);
-
-    int cannot_refract = ri * sin_theta > 1.0f;
-    struct vec3 direction;
-
-    if (cannot_refract || reflectance(cos_theta, ri) > *seed) {
-        vec3_reflect(&direction, &unit_direction, &rec->normal);
-    } else {
-        vec3_refract(&direction, &unit_direction, &rec->normal, ri);
-    }
-
-    vec3_normalize(&direction);
-    scattered->direction = direction;
+    vec3_refract(&refracted, &unit_direction, &rec->normal, ri);
+    vec3_normalize(&refracted);
     scattered->origin = rec->point;
+    scattered->direction = refracted;
     return 1;
 }
+
+// if (cannot_refract || reflectance(cos_theta, ri) > *seed) {
+    //     vec3_reflect(&direction, &unit_direction, &rec->normal);
+    // } else {
+    //     vec3_refract(&direction, &unit_direction, &rec->normal, ri);
+    // }

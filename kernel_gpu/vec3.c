@@ -106,22 +106,28 @@ void vec3_reflect(struct vec3 *dest, struct vec3 const *v, struct vec3 const *n)
     dest->z = v->z - 2 * dot_product * n->z;
 }
 
-void vec3_refract(struct vec3 *dest, struct vec3 const *uv, struct vec3 const *n, float etai_over_etat)
+void vec3_refract(struct vec3 *dest, const struct vec3 *uv, const struct vec3 *n, float etai_over_etat)
 {
-    struct vec3 min_uv = *uv;
-    vec3_mul(&min_uv, -1);
-    float cos_theta = fmin(vec3_dot(&min_uv, n), 1.0f);
-    struct vec3 r_out_perp;
+    // cos_theta = min(dot(-uv, n), 1.0f)
+    struct vec3 neg_uv = *uv;
+    vec3_mul(&neg_uv, -1.0f);
+    float cos_theta = fmin(vec3_dot(&neg_uv, n), 1.0f);
 
-    r_out_perp.x = etai_over_etat * (uv->x + (cos_theta * n->x));
-    r_out_perp.y = etai_over_etat * (uv->y + (cos_theta * n->y));
-    r_out_perp.z = etai_over_etat * (uv->z + (cos_theta * n->z));
+    // r_out_perp = etai_over_etat * (uv + cos_theta * n)
+    struct vec3 r_out_perp = {
+        etai_over_etat * (uv->x + cos_theta * n->x),
+        etai_over_etat * (uv->y + cos_theta * n->y),
+        etai_over_etat * (uv->z + cos_theta * n->z)
+    };
 
+    // r_out_parallel = -sqrt(1 - |r_out_perp|^2) * n
+    float k = -sqrt(fmax(0.0f, 1.0f - vec3_dot(&r_out_perp, &r_out_perp)));
     struct vec3 r_out_parallel = *n;
-    float aze = -1 * sqrt(fabs(1.0f - vec3_dot(&r_out_perp, &r_out_perp)));
-    vec3_mul(&r_out_parallel, aze);
+    vec3_mul(&r_out_parallel, k);
 
+    // somme
     dest->x = r_out_perp.x + r_out_parallel.x;
     dest->y = r_out_perp.y + r_out_parallel.y;
     dest->z = r_out_perp.z + r_out_parallel.z;
 }
+

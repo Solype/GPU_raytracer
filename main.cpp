@@ -21,7 +21,6 @@
 #include "kernel_gpu/struct.h"
 #include "kernel_gpu/sphere.h"
 #include "kernel_gpu/materials.h"
-#include "kernel_gpu/materials.h"
 
 void register_the_scene(RayTracerRegistry &reg)
 {
@@ -32,7 +31,7 @@ void register_the_scene(RayTracerRegistry &reg)
     reg.register_primitive(Sphere(-1.0, 0.0, -1.0, 0.5), Metal(0.8, 0.8, 0.8, 0.3)); // Metal(0.8, 0.6, 0.2, 0.2)); // Dielectric(1.5f));
 
     //right
-    reg.register_primitive(Sphere(1.0, 0.0, -1.0, 0.5), Metal(0.8, 0.6, 0.2, 1.0));
+    reg.register_primitive(Sphere(1.0, 0.0, -1.0, 0.5), Dielectric(1.5f)); //Metal(0.8, 0.6, 0.2, 1.0));
 
     // reg.register_primitive(Sphere(-1.0, 0.0, -1.0, 0.5), Metal(0.8, 0.8, 0.8, 0.2));
     // reg.register_primitive(Sphere(0.0, 0.75, 0.25, 0.75), Diffuse(0.8, 0.6, 0.0));
