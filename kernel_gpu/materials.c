@@ -55,11 +55,12 @@ int material_metal_compute(struct material_metal const *mat, const struct ray *r
     return 1;
 }
 
-static float reflectance(float cosine, float refraction_index) {
-        // Use Schlick's approximation for reflectance.
-        float r0 = (1 - refraction_index) / (1 + refraction_index);
-        r0 = r0*r0;
-        return r0 + (1 - r0) * pow((1 - cosine), 5);
+static float reflectance(float cosine, float refraction_index)
+{
+    // Use Schlick's approximation for reflectance.
+    float r0 = (1 - refraction_index) / (1 + refraction_index);
+    r0 = r0*r0;
+    return r0 + (1 - r0) * pow((1 - cosine), 5);
 }
 
 int material_dielectric_compute(struct material_dielectric const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
