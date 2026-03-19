@@ -19,7 +19,7 @@ Ce dépôt contient un raytracer simple implémenté en C++/C, utilisant OpenCL 
 
 1. Clone ce dépôt :
   ```bash
-   git clone https://github.com/ton-utilisateur/opencl-raytracer.git
+   git clone https://github.com/Solype/GPU_raytracer
    cd opencl-raytracer
   ```
 2. Crée un dossier `build` et compile avec CMake :
@@ -32,26 +32,11 @@ Ce dépôt contient un raytracer simple implémenté en C++/C, utilisant OpenCL 
 
 ---
 
-## 📂 Structure du projet
-
-
-| Dossier     | Description                                                        |
-| ----------- | ------------------------------------------------------------------ |
-| `/src`      | Code source du raytracer (C++/C)                                   |
-| `/include`  | Fichiers d'en-tête (.h)                                            |
-| `/opencl`   | Kernels OpenCL (.cl) pour le rendu sur GPU                         |
-| `/cmake`    | Modules CMake pour la configuration                                |
-| `/examples` | Exemples de scènes et de configurations                            |
-| `/docs`     | Documentation et ressources pour apprendre OpenCL et le raytracing |
-
-
----
-
 ## 🚀 Utilisation
 
 1. **Exécuter le raytracer** :
   ```bash
-   ./raytracer
+   ./app
   ```
 2. **Personnaliser une scène** :
   - Modifiez les fichiers dans `/examples` pour créer vos propres scènes.
@@ -85,12 +70,6 @@ Le fichier `CMakeLists.txt` est configuré pour :
 - Trouver automatiquement OpenCL sur votre système.
 - Compiler les kernels OpenCL et les lier au projet.
 - Générer un exécutable pour le raytracer.
-
----
-
-## 📝 Licence
-
-Ce projet est sous licence **MIT**. Consultez le fichier `LICENSE` pour plus de détails.
 
 ---
 
