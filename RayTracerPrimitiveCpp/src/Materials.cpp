@@ -16,7 +16,10 @@ bool operator==(const struct material &lhs, const struct material &rhs)
         case DIFFUSE:
             return lhs.data.diffuse.albedo == rhs.data.diffuse.albedo;
         case METAL:
-            return lhs.data.metal.albedo == rhs.data.metal.albedo;
+            return lhs.data.metal.albedo == rhs.data.metal.albedo
+                && lhs.data.metal.fuzz == rhs.data.metal.fuzz;
+        case DIELECTRIC:
+            return lhs.data.dielectric.refraction_index == rhs.data.dielectric.refraction_index;
         default:
             return false;
     }

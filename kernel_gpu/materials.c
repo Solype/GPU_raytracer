@@ -10,6 +10,7 @@
     #include "kernel_gpu/hits.h"
     #include "kernel_gpu/interval.h"
     #include "kernel_gpu/materials.h"
+    #include "kernel_gpu/my_random.h"
 #endif
 
 int material_diffuse_compute(struct material_diffuse const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
@@ -17,7 +18,9 @@ int material_diffuse_compute(struct material_diffuse const *mat, const struct ra
 {
     vec3_random_unit(&scattered->direction, seed);
     vec3_add(&scattered->direction, &rec->normal);
-
+    if (vec3_near_zero(&scattered->direction)) {
+        scattered->direction = rec->normal;
+    }
     if (vec3_dot(&scattered->direction, &rec->normal) < 0.0f) {
         scattered->direction.x *= -1;
         scattered->direction.y *= -1;
@@ -36,11 +39,11 @@ int material_metal_compute(struct material_metal const *mat, const struct ray *r
     float fuzz = mat->fuzz;
     struct vec3 unit_vec;
     struct vec3 reflected;
-    struct vec3 save_reflected;
     float dot = 0;
 
     vec3_reflect(&reflected, &r_in->direction, &rec->normal);
-    save_reflected = reflected;
+    // fuzz is relative to a unit reflection, camera rays are not normalized
+    vec3_normalize(&reflected);
     vec3_random_unit(&unit_vec, seed);
     if (vec3_dot(&unit_vec, &rec->normal) < 0) {
         vec3_mul(&unit_vec, -1);
@@ -52,7 +55,7 @@ int material_metal_compute(struct material_metal const *mat, const struct ray *r
     scattered->origin = rec->point;
     scattered->direction = reflected;
     *attenuation = mat->albedo;
-    return 1;
+    return dot > 0.0f;
 }
 
 static float reflectance(float cosine, float refraction_index)
@@ -71,15 +74,19 @@ int material_dielectric_compute(struct material_dielectric const *mat, const str
     struct vec3 refracted;
 
     vec3_normalize(&unit_direction);
-    vec3_refract(&refracted, &unit_direction, &rec->normal, ri);
+    float cos_theta = fmin(-vec3_dot(&unit_direction, &rec->normal), 1.0f);
+    float sin_theta = sqrt(fmax(0.0f, 1.0f - cos_theta * cos_theta));
+    int cannot_refract = ri * sin_theta > 1.0f;
+    float r = rand01(*seed);
+    *seed = randint(*seed);
+
+    if (cannot_refract || reflectance(cos_theta, ri) > r) {
+        vec3_reflect(&refracted, &unit_direction, &rec->normal);
+    } else {
+        vec3_refract(&refracted, &unit_direction, &rec->normal, ri);
+    }
     vec3_normalize(&refracted);
     scattered->origin = rec->point;
     scattered->direction = refracted;
     return 1;
 }
-
-// if (cannot_refract || reflectance(cos_theta, ri) > *seed) {
-    //     vec3_reflect(&direction, &unit_direction, &rec->normal);
-    // } else {
-    //     vec3_refract(&direction, &unit_direction, &rec->normal, ri);
-    // }

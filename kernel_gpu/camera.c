@@ -66,5 +66,5 @@ void color_hit(struct vec3 *color, struct hits const *b)
 {
     color->x = b->normal.x * 0.5f + 0.5f;
     color->y = b->normal.y * 0.5f + 0.5f;
-    color->z = b->normal.x * 0.5f + 0.5f;
+    color->z = b->normal.z * 0.5f + 0.5f;
 }

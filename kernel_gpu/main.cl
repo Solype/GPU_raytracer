@@ -17,7 +17,7 @@ int primitive_hits(struct hits *hit, const struct ray *ray, __global const struc
         return sphere_hits(&primit, ray, hit, interval);
     }
     default:
-        return 1;
+        return 0;
     }
     return 0;
 }
@@ -38,10 +38,11 @@ int primitive_list_hits(struct hits *record, const struct ray *ray, __global con
     int has_hit = 0;
 
     for (unsigned int i = 0; i < nb_primitives; ++i) {
-        if (primitive_hits(&hit, ray, &primitives[i], &interval)
-            && (hit.t < record->t || record->t < 0)) {
-                *record = hit;
-                has_hit = 1;
+        if (primitive_hits(&hit, ray, &primitives[i], &interval)) {
+            // closest hit so far: later primitives must be nearer
+            interval.tmax = hit.t;
+            *record = hit;
+            has_hit = 1;
         }
     }
     return has_hit;
@@ -93,7 +94,9 @@ int compute_material(__global struct material const *mats, const struct ray *r_i
 
 void init_base_color(struct vec3 *vec, struct ray const *r)
 {
-    float a = 0.5f * (r->direction.y  + 1);
+    struct vec3 unit = r->direction;
+    vec3_normalize(&unit);
+    float a = 0.5f * (unit.y + 1);
 
     *vec = (struct vec3) {
         .x = (1 - a) + (a * 0.5f),
@@ -108,7 +111,8 @@ void compute_color_ray(
     __global struct scene_data *metadata,
     __global const struct primitive *primitives,
     __global const struct material *materials,
-    __global const struct light *lights
+    __global const struct light *lights,
+    int *rand_seed
 )
 {
     struct hits hit = (struct hits){
@@ -118,34 +122,32 @@ void compute_color_ray(
         .front_face = 0,
         .mat_id = -1
     };
-    struct hits copy;
-    int i = 0;
-    int rand_seed = metadata->rand_seed ^ get_global_id(0);
-    init_base_color(dest, my_ray);
+    struct vec3 throughput = (struct vec3){1.0f, 1.0f, 1.0f};
 
-    for (;primitive_list_hits(&hit, my_ray, primitives, metadata->nb_primitives) == 1 && i < 50; ++i) {
+    *dest = (struct vec3){0.0f, 0.0f, 0.0f};
+    for (int i = 0; i < 50; ++i) {
+        if (!primitive_list_hits(&hit, my_ray, primitives, metadata->nb_primitives)) {
+            // ray escaped: sky seen along the LAST bounce direction, not the camera ray
+            init_base_color(dest, my_ray);
+            dest->x = float_to_uchar(dest->x * throughput.x);
+            dest->y = float_to_uchar(dest->y * throughput.y);
+            dest->z = float_to_uchar(dest->z * throughput.z);
+            return;
+        }
         if (!(0 <= hit.mat_id && hit.mat_id < metadata->nb_materials)) {
             return;
         }
         struct ray new_ray = (struct ray){. origin = (struct vec3){ .x = 0.0f, .y = 0.0f, .z = 0.0f}, .direction = (struct vec3){ .x = 0.0f, .y = 0.0f, .z = 0.0f}};
         struct vec3 attenuation = (struct vec3){ .x = 0.0f, .y = 0.0f, .z = 0.0f};
-        if (!compute_material(materials, my_ray, &hit, &attenuation, &new_ray, &rand_seed)) {
-            *dest = (struct vec3){ 0.0f, 0.0f, 0.0f};
+        if (!compute_material(materials, my_ray, &hit, &attenuation, &new_ray, rand_seed)) {
             return;
         }
         *my_ray = new_ray;
-        dest->x *= attenuation.x;
-        dest->y *= attenuation.y;
-        dest->z *= attenuation.z;
+        throughput.x *= attenuation.x;
+        throughput.y *= attenuation.y;
+        throughput.z *= attenuation.z;
     }
-    if (i >= 50) {
-        return;
-    }
-    dest->x = float_to_uchar(dest->x);
-    dest->y = float_to_uchar(dest->y);
-    dest->z = float_to_uchar(dest->z);
-
-    metadata->rand_seed = rand_seed;
+    // max depth reached: no light gathered, stays black
 }
 
 __kernel void compute_ray(
@@ -164,10 +166,13 @@ __kernel void compute_ray(
 
     int i = id % cam_copy.image_width;
     int j = id / cam_copy.image_width;
+    // one random stream per pixel, advanced across samples (metadata is read-only)
+    int rand_seed = wang_hash(metadata->rand_seed ^ wang_hash(id));
 
     for (int k = 0; k < cam_copy.sample_pixel; k++) {
-        camera_compute_ray(&my_ray, &cam_copy, i, j, k);
-        compute_color_ray(&mycolor, &my_ray, metadata, primitives, materials, lights);
+        camera_compute_ray(&my_ray, &cam_copy, i, j, rand_seed);
+        rand_seed = randint(rand_seed);
+        compute_color_ray(&mycolor, &my_ray, metadata, primitives, materials, lights, &rand_seed);
         final_color.x += mycolor.x;
         final_color.y += mycolor.y;
         final_color.z += mycolor.z;
