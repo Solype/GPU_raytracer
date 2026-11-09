@@ -1,9 +1,8 @@
-#define CL_TARGET_OPENCL_VERSION 220
-#include <CL/cl.h>
-#include "GPUPlateform.hpp"
-
 #ifndef GPUDEVICE_HPP_
     #define GPUDEVICE_HPP_
+
+    #include <CL/cl.h>
+    #include "GPUPlatform.hpp"
 
 namespace gpu {
     class Device {
@@ -12,8 +11,8 @@ namespace gpu {
             ~Device();
 
             cl_device_id const &get_device() const;
-            bool load_noexcept(Plateform const &plateform) noexcept;
-            void load(Plateform const &plateform);
+            bool load_noexcept(Platform const &platform) noexcept;
+            void load(Platform const &platform);
 
         private:
             cl_device_id device;

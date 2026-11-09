@@ -1,6 +1,7 @@
 #include "GPUDevice.hpp"
-#include <vector>
 #include <iostream>
+#include <stdexcept>
+#include <vector>
 
 gpu::Device::Device() :
     device(nullptr)
@@ -16,18 +17,18 @@ cl_device_id const &gpu::Device::get_device(void) const
     return device;
 }
 
-bool gpu::Device::load_noexcept(Plateform const &plateform) noexcept
+bool gpu::Device::load_noexcept(Platform const &platform) noexcept
 {
     cl_uint deviceCount = 0;
     cl_int err;
 
-    err = clGetDeviceIDs(plateform.get_plateform(), CL_DEVICE_TYPE_ALL, 0, nullptr, &deviceCount);
+    err = clGetDeviceIDs(platform.get_platform(), CL_DEVICE_TYPE_ALL, 0, nullptr, &deviceCount);
     if (err != CL_SUCCESS || deviceCount == 0) {
         std::cerr << "Error: clGetDeviceIDs failed to get device count. Code: " << err << std::endl;
         return false;
     }
     std::vector<cl_device_id> devices(deviceCount);
-    err = clGetDeviceIDs(plateform.get_plateform(), CL_DEVICE_TYPE_ALL, deviceCount, devices.data(), nullptr);
+    err = clGetDeviceIDs(platform.get_platform(), CL_DEVICE_TYPE_ALL, deviceCount, devices.data(), nullptr);
     if (err != CL_SUCCESS) {
         std::cerr << "Error: clGetDeviceIDs failed to get device IDs. Code: " << err << std::endl;
         return false;
@@ -36,20 +37,9 @@ bool gpu::Device::load_noexcept(Plateform const &plateform) noexcept
     return true;
 }
 
-void gpu::Device::load(Plateform const &plateform)
+void gpu::Device::load(Platform const &platform)
 {
-    cl_uint deviceCount = 0;
-    cl_int err;
-
-    err = clGetDeviceIDs(plateform.get_plateform(), CL_DEVICE_TYPE_ALL, 0, nullptr, &deviceCount);
-    if (err != CL_SUCCESS || deviceCount == 0) {
-        throw std::runtime_error("clGetDeviceIDs failed to get device count. Code: " + std::to_string(err));
+    if (this->load_noexcept(platform) == false) {
+        throw std::runtime_error("[GPU] failed to load device");
     }
-    std::vector<cl_device_id> devices(deviceCount);
-    err = clGetDeviceIDs(plateform.get_plateform(), CL_DEVICE_TYPE_ALL, deviceCount, devices.data(), nullptr);
-    if (err != CL_SUCCESS) {
-        throw std::runtime_error("clGetDeviceIDs failed to get device IDs. Code: " + std::to_string(err));
-    }
-
-    this->device = devices[0];
 }

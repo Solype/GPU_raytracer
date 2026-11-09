@@ -1,35 +1,24 @@
+// Unsigned on purpose: signed overflow is undefined and >> on a negative
+// int copies the sign bit, which ruins the hash.
 
-int pcg_hash(int input)
+uint wang_hash(uint seed)
 {
-    input ^= input >> 16;
-    input *= 0x85ebca6b;
-    input ^= input >> 13;
-    input *= 0xc2b2ae35;
-    input ^= input >> 16;
-    return input;
-}
-
-int wang_hash(int seed)
-{
-    seed = (seed ^ 61) ^ (seed >> 16);
-    seed *= 9;
+    seed = (seed ^ 61u) ^ (seed >> 16);
+    seed *= 9u;
     seed = seed ^ (seed >> 4);
-    seed *= 0x27d4eb2d;
+    seed *= 0x27d4eb2du;
     seed = seed ^ (seed >> 15);
     return seed;
 }
 
-int hash1(int seed)
+// xorshift32: advances the state (must never be 0), returns a float in [0, 1)
+float rand01(uint *state)
 {
-    return (seed * 0x5DEECE66DL + 0xBL) & ((1L << 48) - 1);
-}
+    uint x = *state;
 
-int randint(int seed)
-{
-    return wang_hash(seed);
-}
-
-float rand01(int k)
-{    
-    return (float)(wang_hash(k) & 0x00FFFFFF) / (float)0x01000000;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *state = x;
+    return (float)(x >> 8) * (1.0f / 16777216.0f);
 }

@@ -1,38 +1,19 @@
-#ifdef __cmakelist
-    #include "vec3.h"
-    #include "ray.h"
-    #include "hits.h"
-    #include "interval.h"
-#else
-    #include "kernel_gpu/vec3.h"
-    #include "kernel_gpu/ray.h"
-    #include "kernel_gpu/hits.h"
-    #include "kernel_gpu/interval.h"
-#endif
+#ifndef MATERIALS_H_
+    #define MATERIALS_H_
 
-#ifndef MATERIAL_METAL_H_
-    #define MATERIAL_METAL_H_
+    #include "vec3.h"
+
+struct material_diffuse {
+    struct vec3 albedo;
+};
 
 struct material_metal {
     struct vec3 albedo;
     float fuzz;
 };
-int material_metal_compute(struct material_metal const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
-    struct ray *scattered, int *seed);
 
-
-
-struct material_diffuse {
-    struct vec3 albedo;
-};
-int material_diffuse_compute(struct material_diffuse const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
-    struct ray *scattered, int *seed);
-
-
-struct  material_dielectric {
+struct material_dielectric {
     float refraction_index;
 };
-int material_dielectric_compute(struct material_dielectric const *mat, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
-    struct ray *scattered, int *seed);
 
-#endif /* !MATERIAL_METAL_H_ */
+#endif /* !MATERIALS_H_ */

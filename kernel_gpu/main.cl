@@ -1,188 +1,121 @@
-#include "kernel_gpu/vec3.h"
-#include "kernel_gpu/struct.h"
-#include "kernel_gpu/ray.h"
-#include "kernel_gpu/camera.h"
-#include "kernel_gpu/my_random.h"
+#include "struct.h"
+#include "ray.h"
+#include "hits.h"
+#include "interval.h"
 
-#ifndef INFINITY
-    #define INFINITY_BITS 0x7F800000
-    #define INFINITY (*(float*)&(unsigned int){INFINITY_BITS})
-#endif
+#define MAX_DEPTH 50
 
-int primitive_hits(struct hits *hit, const struct ray *ray, __global const struct primitive *p, struct interval *interval)
+struct ray camera_get_ray(struct camera const *cam, int i, int j, uint *seed)
 {
-    struct primitive primit = *p;
-    switch (p->type) {
-    case SHPERE : {
-        return sphere_hits(&primit, ray, hit, interval);
-    }
-    default:
-        return 0;
-    }
-    return 0;
+    // random point inside the pixel square, for antialiasing
+    float u = (float)i + rand01(seed) - 0.5f;
+    float v = (float)j + rand01(seed) - 0.5f;
+    float3 center = vec3_load(cam->center);
+    float3 pixel = vec3_load(cam->pixel00_loc)
+        + u * vec3_load(cam->pixel_delta_u)
+        + v * vec3_load(cam->pixel_delta_v);
+
+    return (struct ray){ .origin = center, .direction = normalize(pixel - center) };
 }
 
-uchar float_to_uchar(float x) {
-    x = fabs(x);
-    x = fmin(fmax(x, 0.0f), 1.0f);
-    return (uchar)(x * 255.0f + 0.5f);
-}
-
-int primitive_list_hits(struct hits *record, const struct ray *ray, __global const struct primitive *primitives, unsigned int nb_primitives)
+int scene_hits(struct ray const *ray, __global struct primitive const *primitives, uint nb_primitives, struct hits *rec)
 {
-    struct interval interval = (struct interval){
-        .tmax = INFINITY,
-        .tmin = 0.001f
-    };
-    struct hits hit = *record;
+    struct interval interval = { .tmin = 0.001f, .tmax = INFINITY };
     int has_hit = 0;
 
-    for (unsigned int i = 0; i < nb_primitives; ++i) {
-        if (primitive_hits(&hit, ray, &primitives[i], &interval)) {
+    for (uint i = 0; i < nb_primitives; ++i) {
+        struct primitive p = primitives[i];
+        int hit = 0;
+
+        switch (p.type) {
+        case SPHERE:
+            hit = sphere_hits(&p.data.sphere, ray, &interval, rec);
+            break;
+        default:
+            break;
+        }
+        if (hit) {
             // closest hit so far: later primitives must be nearer
-            interval.tmax = hit.t;
-            *record = hit;
+            interval.tmax = rec->t;
+            rec->mat_id = p.mat_id;
             has_hit = 1;
         }
     }
     return has_hit;
 }
 
-void compute_random_new_ray(struct ray *dest, struct hits *hit, int *rand_seed)
+int material_scatter(__global struct material const *materials, struct ray const *r_in, struct hits const *rec,
+    float3 *attenuation, struct ray *scattered, uint *seed)
 {
-    do {
-        *rand_seed = (int)(randint(*rand_seed));
-        dest->direction.x = ((rand01(*rand_seed) - 0.5f) * 2);
+    struct material mat = materials[rec->mat_id];
 
-        *rand_seed = (int)(randint(*rand_seed));
-        dest->direction.y = ((rand01(*rand_seed) - 0.5f) * 2);
-
-        *rand_seed = (int)(randint(*rand_seed));
-        dest->direction.z = ((rand01(*rand_seed) - 0.5f) * 2);
-    } while (vec3_dot(&dest->direction, &dest->direction) < 1e-40f);
-
-    if (vec3_dot(&dest->direction, &hit->normal) < 0.0f) {
-        dest->direction.x *= -1;
-        dest->direction.y *= -1;
-        dest->direction.z *= -1;
+    switch (mat.type) {
+    case DIFFUSE:
+        return material_diffuse_scatter(&mat.data.diffuse, rec, attenuation, scattered, seed);
+    case METAL:
+        return material_metal_scatter(&mat.data.metal, r_in, rec, attenuation, scattered, seed);
+    case DIELECTRIC:
+        return material_dielectric_scatter(&mat.data.dielectric, r_in, rec, attenuation, scattered, seed);
+    default:
+        return 0;
     }
-    vec3_normalize(&dest->direction);
-    dest->origin = hit->point;
 }
 
-int compute_material(__global struct material const *mats, const struct ray *r_in, const struct hits *rec, struct vec3 *attenuation,
-    struct ray *scattered, int *seed)
+float3 sky_color(float3 direction)
 {
-    switch (mats[rec->mat_id].type) {
-        case DIFFUSE: {
-            struct material_diffuse mat = mats[rec->mat_id].data.diffuse;
-            return material_diffuse_compute(&mat, r_in, rec, attenuation, scattered, seed);
-        }
-        case METAL: {
-            struct material_metal mat = mats[rec->mat_id].data.metal;
-            return material_metal_compute(&mat, r_in, rec, attenuation, scattered, seed);
-        }
-        case DIELECTRIC: {
-            struct material_dielectric mat = mats[rec->mat_id].data.dielectric;
-            return material_dielectric_compute(&mat, r_in, rec, attenuation, scattered, seed);
-        }
-        default:
-            break;
-    }
-    return 1;
+    float a = 0.5f * (normalize(direction).y + 1.0f);
+
+    return (1.0f - a) * (float3)(1.0f) + a * (float3)(0.5f, 0.7f, 1.0f);
 }
 
-void init_base_color(struct vec3 *vec, struct ray const *r)
+// linear color carried by one camera ray
+float3 ray_color(struct ray ray, __global struct scene_data const *scene,
+    __global struct primitive const *primitives, __global struct material const *materials, uint *seed)
 {
-    struct vec3 unit = r->direction;
-    vec3_normalize(&unit);
-    float a = 0.5f * (unit.y + 1);
+    float3 throughput = (float3)(1.0f);
+    struct hits rec;
 
-    *vec = (struct vec3) {
-        .x = (1 - a) + (a * 0.5f),
-        .y = (1 - a) + (a * 0.7f),
-        .z = (1 - a) + (a * 1.0f)
-    };
-}
-
-void compute_color_ray(
-    struct vec3 *dest,
-    struct ray *my_ray,
-    __global struct scene_data *metadata,
-    __global const struct primitive *primitives,
-    __global const struct material *materials,
-    __global const struct light *lights,
-    int *rand_seed
-)
-{
-    struct hits hit = (struct hits){
-        .t = -1,
-        .point = (struct vec3){.x = 0, .y = 0, .z = 0},
-        .normal = (struct vec3){.x = 0, .y = 0, .z = 0},
-        .front_face = 0,
-        .mat_id = -1
-    };
-    struct vec3 throughput = (struct vec3){1.0f, 1.0f, 1.0f};
-
-    *dest = (struct vec3){0.0f, 0.0f, 0.0f};
-    for (int i = 0; i < 50; ++i) {
-        if (!primitive_list_hits(&hit, my_ray, primitives, metadata->nb_primitives)) {
-            // ray escaped: sky seen along the LAST bounce direction, not the camera ray
-            init_base_color(dest, my_ray);
-            dest->x *= throughput.x;
-            dest->y *= throughput.y;
-            dest->z *= throughput.z;
-            return;
+    for (int depth = 0; depth < MAX_DEPTH; ++depth) {
+        if (!scene_hits(&ray, primitives, scene->nb_primitives, &rec)) {
+            // ray escaped: sky seen along the LAST bounce direction
+            return throughput * sky_color(ray.direction);
         }
-        if (!(0 <= hit.mat_id && hit.mat_id < metadata->nb_materials)) {
-            return;
+        if (rec.mat_id >= scene->nb_materials) {
+            return (float3)(0.0f);
         }
-        struct ray new_ray = (struct ray){. origin = (struct vec3){ .x = 0.0f, .y = 0.0f, .z = 0.0f}, .direction = (struct vec3){ .x = 0.0f, .y = 0.0f, .z = 0.0f}};
-        struct vec3 attenuation = (struct vec3){ .x = 0.0f, .y = 0.0f, .z = 0.0f};
-        if (!compute_material(materials, my_ray, &hit, &attenuation, &new_ray, rand_seed)) {
-            return;
+        float3 attenuation;
+        struct ray scattered;
+        if (!material_scatter(materials, &ray, &rec, &attenuation, &scattered, seed)) {
+            return (float3)(0.0f);
         }
-        *my_ray = new_ray;
-        throughput.x *= attenuation.x;
-        throughput.y *= attenuation.y;
-        throughput.z *= attenuation.z;
+        throughput *= attenuation;
+        ray = scattered;
     }
-    // max depth reached: no light gathered, stays black
+    // max depth reached: no light gathered
+    return (float3)(0.0f);
 }
 
 __kernel void compute_ray(
     __global struct vec3 *color,
-    __global struct scene_data *metadata,
-    __global const struct primitive *primitives,
-    __global const struct material *materials,
-    __global const struct light *lights
-    )
+    __global struct scene_data const *scene,
+    __global struct primitive const *primitives,
+    __global struct material const *materials)
 {
-    int id = get_global_id(0);
-    struct ray my_ray;
-    struct vec3 mycolor = (struct vec3){.x = 0, .y = 0, .z = 0};
-    struct vec3 final_color = (struct vec3){.x = 0, .y = 0, .z = 0};
-    struct camera cam_copy = metadata->cam;
+    uint id = get_global_id(0);
+    struct camera cam = scene->cam;
+    int i = id % cam.image_width;
+    int j = id / cam.image_width;
+    // one random stream per pixel, advanced across samples
+    uint seed = wang_hash(scene->rand_seed ^ wang_hash(id));
+    float3 sum = (float3)(0.0f);
 
-    int i = id % cam_copy.image_width;
-    int j = id / cam_copy.image_width;
-    // one random stream per pixel, advanced across samples (metadata is read-only)
-    int rand_seed = wang_hash(metadata->rand_seed ^ wang_hash(id));
-
-    for (int k = 0; k < cam_copy.sample_pixel; k++) {
-        camera_compute_ray(&my_ray, &cam_copy, i, j, rand_seed);
-        rand_seed = randint(rand_seed);
-        compute_color_ray(&mycolor, &my_ray, metadata, primitives, materials, lights, &rand_seed);
-        final_color.x += mycolor.x;
-        final_color.y += mycolor.y;
-        final_color.z += mycolor.z;
+    if (seed == 0) {
+        seed = 1;
     }
-    final_color.x /= cam_copy.sample_pixel;
-    final_color.y /= cam_copy.sample_pixel;
-    final_color.z /= cam_copy.sample_pixel;
+    for (int k = 0; k < cam.sample_pixel; ++k) {
+        sum += ray_color(camera_get_ray(&cam, i, j, &seed), scene, primitives, materials, &seed);
+    }
     // gamma 2 on the averaged linear color, never per sample
-    color[id].x = float_to_uchar(sqrt(final_color.x));
-    color[id].y = float_to_uchar(sqrt(final_color.y));
-    color[id].z = float_to_uchar(sqrt(final_color.z));
-    return;
+    float3 c = sqrt(clamp(sum / (float)cam.sample_pixel, 0.0f, 1.0f)) * 255.0f + 0.5f;
+    color[id] = (struct vec3){ c.x, c.y, c.z };
 }

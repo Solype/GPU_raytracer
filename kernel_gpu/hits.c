@@ -1,24 +1,8 @@
+#include "hits.h"
 
-
-#ifdef __cmakelist
-    #include "hits.h"
-    #include "ray.h"
-#else
-    #include "kernel_gpu/hits.h"
-    #include "kernel_gpu/ray.h"
-#endif
-
-void hits_set_face_normal(struct hits *hits, struct ray const *ray, struct vec3 const *outward_normal)
+// normal always points against the ray, front_face tells which side was hit
+void hits_set_face_normal(struct hits *rec, float3 ray_direction, float3 outward_normal)
 {
-    hits->front_face = vec3_dot(&ray->direction, outward_normal) < 0;
-
-    if (!((struct hits *)hits)->front_face) {
-        hits->normal.x = -(outward_normal->x);
-        hits->normal.y = -(outward_normal->y);
-        hits->normal.z = -(outward_normal->z);
-    } else {
-        hits->normal.x = outward_normal->x;
-        hits->normal.y = outward_normal->y;
-        hits->normal.z = outward_normal->z;
-    }
+    rec->front_face = dot(ray_direction, outward_normal) < 0.0f;
+    rec->normal = rec->front_face ? outward_normal : -outward_normal;
 }

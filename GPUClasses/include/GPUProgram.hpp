@@ -1,22 +1,24 @@
-#define CL_TARGET_OPENCL_VERSION 220
-#include <CL/cl.h>
-#include <string>
-#include <list>
-#include "GPUContext.hpp"
+#ifndef GPUPROGRAM_HPP_
+    #define GPUPROGRAM_HPP_
 
-#ifndef GPULOADER_HPP_
-    #define GPULOADER_HPP_
-
+    #include <CL/cl.h>
+    #include <list>
+    #include <string>
+    #include "GPUContext.hpp"
+    #include "GPUDevice.hpp"
 
 namespace gpu {
     class Program {
         public:
             Program();
             ~Program();
+            Program(Program const &) = delete;
+            Program &operator=(Program const &) = delete;
 
             int add_module(std::string const &path);
-            void compile(gpu::Context const &context, gpu::Device const &device);
-            bool compile_noexcept(gpu::Context const &context, gpu::Device const &device) noexcept;
+            // options are passed to clBuildProgram, e.g. "-I kernel_gpu"
+            void compile(gpu::Context const &context, gpu::Device const &device, std::string const &options = "");
+            bool compile_noexcept(gpu::Context const &context, gpu::Device const &device, std::string const &options = "") noexcept;
             cl_program const &get_program(void) const;
 
         private:
@@ -25,4 +27,4 @@ namespace gpu {
     };
 }
 
-#endif /* !GPULOADER_HPP_ */
+#endif /* !GPUPROGRAM_HPP_ */

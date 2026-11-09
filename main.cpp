@@ -1,26 +1,19 @@
-#define CL_TARGET_OPENCL_VERSION 220
-#include <CL/cl.h>
-#include <iostream>
-#include <chrono>
-#include <vector>
+#include <cstdlib>
+#include <ctime>
 #include <fstream>
-#include <sstream>
-#include <memory>
-#include <fcntl.h>
-#include <unistd.h>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
-#include "GPUProgram.hpp"
-#include "GPUPlateform.hpp"
+#include "GPUContext.hpp"
 #include "GPUDevice.hpp"
-#include "GPUQueue.hpp"
 #include "GPUKernel.hpp"
+#include "GPUPlatform.hpp"
+#include "GPUProgram.hpp"
+#include "GPUQueue.hpp"
 
 #include "RayTracerRegistry.hpp"
-
-#include "kernel_gpu/camera.h"
-#include "kernel_gpu/struct.h"
-#include "kernel_gpu/sphere.h"
-#include "kernel_gpu/materials.h"
+#include "struct.h"
 
 void register_the_scene(RayTracerRegistry &reg)
 {
@@ -63,56 +56,60 @@ void set_cam(struct camera &cam, size_t &width, size_t &height)
 
     double aspect_ratio = 16.0 / 9.0;
     double focal_length = 1.0;
-    height = (int)((width) / aspect_ratio);
-    create_camera(&cam, width, height,  focal_length);
+    height = (size_t)(width / aspect_ratio);
+    create_camera(&cam, width, height, focal_length);
+    cam.sample_pixel = 100;
 }
 
 int main()
 {
-    gpu::Plateform plateform;
+    gpu::Platform platform;
     gpu::Device device;
     gpu::Program program;
     gpu::Context context;
     gpu::Queue queue;
     gpu::Kernel kernel;
     RayTracerRegistry reg;
-    cl_int err;
-    struct scene_data scenedata;
+    struct scene_data scenedata = {};
     size_t width;
     size_t height;
 
-    srand((int)time(nullptr));
+    srand((unsigned int)time(nullptr));
     scenedata.rand_seed = rand();
     set_cam(scenedata.cam, width, height);
 
     register_the_scene(reg);
-    scenedata.nb_primitives = reg.get_primitives().size();
-    scenedata.nb_materials = reg.get_materials().size();
+    auto &primitives = reg.get_primitives();
+    auto &materials = reg.get_materials();
+    scenedata.nb_primitives = primitives.size();
+    scenedata.nb_materials = materials.size();
     std::vector<struct vec3> colors(width * height);
-    
-    if (plateform.load_noexcept() == false
-        || device.load_noexcept(plateform) == false
+
+    if (platform.load_noexcept() == false
+        || device.load_noexcept(platform) == false
         || context.init_noexcept(device) == false
-        || queue.init_noexcep(context, device) == false
+        || queue.init_noexcept(context, device) == false
     ) {
         return 84;
     }
+    // paths are relative to the working directory: run from the build dir
     program.add_module("./kernel_gpu/entry_point.c");
-    if (program.compile_noexcept(context, device) == false
+    if (program.compile_noexcept(context, device, "-I kernel_gpu") == false
         || kernel.init_noexcept(program, "compute_ray") == false) {
         return 84;
     }
 
-    context.add_ressource(0, nullptr, sizeof(struct vec3) * colors.size(), CL_MEM_WRITE_ONLY);
-    context.add_ressource(1, &scenedata, sizeof(scenedata), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(2, reg.get_primitives().data(), sizeof(struct primitive) * scenedata.nb_primitives, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(3, reg.get_materials().data(), sizeof(struct material) * scenedata.nb_materials, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    context.add_ressource(4, reg.get_primitives().data(), sizeof(struct primitive) * scenedata.nb_primitives, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    kernel.load_params(context);
-
-    queue.run(kernel, width * height);
-    queue.read_result(context, 0, sizeof(struct vec3) * colors.size(), colors.data());
+    // ids are the compute_ray argument indexes
+    if (context.add_resource(0, nullptr, sizeof(struct vec3) * colors.size(), CL_MEM_WRITE_ONLY) == false
+        || context.add_resource(1, &scenedata, sizeof(scenedata), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR) == false
+        || context.add_resource(2, primitives.data(), sizeof(struct primitive) * primitives.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR) == false
+        || context.add_resource(3, materials.data(), sizeof(struct material) * materials.size(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR) == false
+        || kernel.load_params(context) == false
+        || queue.run(kernel, width * height) == false
+        || queue.read_result(context, 0, sizeof(struct vec3) * colors.size(), colors.data()) == false
+    ) {
+        return 84;
+    }
     write_ppm("image.ppm", width, height, colors);
-
     return 0;
 }

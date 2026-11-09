@@ -20,7 +20,7 @@ Ce dépôt contient un raytracer simple implémenté en C++/C, utilisant OpenCL 
 1. Clone ce dépôt :
   ```bash
    git clone https://github.com/Solype/GPU_raytracer
-   cd opencl-raytracer
+   cd GPU_raytracer
   ```
 2. Crée un dossier `build` et compile avec CMake :
   ```bash
@@ -34,13 +34,14 @@ Ce dépôt contient un raytracer simple implémenté en C++/C, utilisant OpenCL 
 
 ## 🚀 Utilisation
 
-1. **Exécuter le raytracer** :
+1. **Exécuter le raytracer** depuis le dossier `build` (le kernel est chargé depuis `./kernel_gpu`) :
   ```bash
    ./app
   ```
+  L'image est écrite dans `image.ppm`.
 2. **Personnaliser une scène** :
-  - Modifiez les fichiers dans `/examples` pour créer vos propres scènes.
-  - Adaptez les kernels OpenCL dans `/opencl` pour expérimenter avec le rendu.
+  - Modifiez `register_the_scene` dans `main.cpp` pour créer vos propres scènes.
+  - Adaptez les kernels OpenCL dans `kernel_gpu/` pour expérimenter avec le rendu.
 
 ---
 
@@ -48,13 +49,14 @@ Ce dépôt contient un raytracer simple implémenté en C++/C, utilisant OpenCL 
 
 ### 1. **Comprendre les bases d'OpenCL**
 
-- Lisez la documentation dans `/docs/opencl-basics.md`.
-- Étudiez les kernels OpenCL dans `/opencl` pour voir comment les calculs sont parallélisés.
+- Étudiez `GPUClasses/` : un wrapper C++ minimal autour de l'API OpenCL (plateforme, device, contexte, programme, kernel, queue).
+- Étudiez les kernels OpenCL dans `kernel_gpu/` (point d'entrée : `entry_point.c`, kernel : `compute_ray` dans `main.cl`) pour voir comment les calculs sont parallélisés : un work-item par pixel.
 
 ### 2. **Raytracing avec OpenCL**
 
 - Le raytracer utilise OpenCL pour accélérer les calculs de rendu.
-- Consultez `/src/raytracer.cpp` pour voir comment les buffers OpenCL sont utilisés.
+- Consultez `main.cpp` pour voir comment les buffers OpenCL sont créés, passés au kernel et relus.
+- Les structures partagées entre l'hôte et le GPU sont dans `kernel_gpu/struct.h`.
 
 ### 3. **Exercices pratiques**
 
@@ -68,8 +70,8 @@ Ce dépôt contient un raytracer simple implémenté en C++/C, utilisant OpenCL 
 Le fichier `CMakeLists.txt` est configuré pour :
 
 - Trouver automatiquement OpenCL sur votre système.
-- Compiler les kernels OpenCL et les lier au projet.
 - Générer un exécutable pour le raytracer.
+- Copier `kernel_gpu/` dans le dossier de build à chaque `make` : les kernels sont compilés par OpenCL au lancement de `./app`.
 
 ---
 

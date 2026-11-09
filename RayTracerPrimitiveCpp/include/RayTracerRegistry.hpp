@@ -1,11 +1,11 @@
-#include "struct.h"
-#include "Primitives.hpp"
-#include "Materials.hpp"
-#include <vector>
-#include <unordered_map>
-
 #ifndef RAYTRACERREGISTRY_HPP_
     #define RAYTRACERREGISTRY_HPP_
+
+    #include <unordered_map>
+    #include <vector>
+    #include "struct.h"
+    #include "Primitives.hpp"
+    #include "Materials.hpp"
 
 class RayTracerRegistry {
     public:
@@ -20,7 +20,6 @@ class RayTracerRegistry {
         std::vector<struct primitive> const &get_primitives(void) const;
         std::vector<struct primitive> &get_primitives(void);
         std::vector<struct material> &get_materials(void);
-
 
     protected:
         std::vector<struct primitive> primitives;
