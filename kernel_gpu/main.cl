@@ -129,9 +129,9 @@ void compute_color_ray(
         if (!primitive_list_hits(&hit, my_ray, primitives, metadata->nb_primitives)) {
             // ray escaped: sky seen along the LAST bounce direction, not the camera ray
             init_base_color(dest, my_ray);
-            dest->x = float_to_uchar(dest->x * throughput.x);
-            dest->y = float_to_uchar(dest->y * throughput.y);
-            dest->z = float_to_uchar(dest->z * throughput.z);
+            dest->x *= throughput.x;
+            dest->y *= throughput.y;
+            dest->z *= throughput.z;
             return;
         }
         if (!(0 <= hit.mat_id && hit.mat_id < metadata->nb_materials)) {
@@ -180,8 +180,9 @@ __kernel void compute_ray(
     final_color.x /= cam_copy.sample_pixel;
     final_color.y /= cam_copy.sample_pixel;
     final_color.z /= cam_copy.sample_pixel;
-    color[id].x =  final_color.x;
-    color[id].y =  final_color.y;
-    color[id].z =  final_color.z;
+    // gamma 2 on the averaged linear color, never per sample
+    color[id].x = float_to_uchar(sqrt(final_color.x));
+    color[id].y = float_to_uchar(sqrt(final_color.y));
+    color[id].z = float_to_uchar(sqrt(final_color.z));
     return;
 }
