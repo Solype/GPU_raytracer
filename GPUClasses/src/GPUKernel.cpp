@@ -45,11 +45,20 @@ void gpu::Kernel::init(gpu::Program const &prog, std::string const &entry_point)
 bool gpu::Kernel::load_params(gpu::Context const &context)
 {
     for (auto const &[id, mem] : context.get_params()) {
-        cl_int err = clSetKernelArg(this->kernel, id, sizeof(cl_mem), &mem);
-        if (err != CL_SUCCESS) {
-            std::cerr << "[GPU] clSetKernelArg failed for argument " << id << ": " << err << std::endl;
+        if (this->set_arg(id, sizeof(cl_mem), &mem) == false) {
             return false;
         }
+    }
+    return true;
+}
+
+bool gpu::Kernel::set_arg(std::size_t id, std::size_t size, void const *value)
+{
+    cl_int err = clSetKernelArg(this->kernel, id, size, value);
+
+    if (err != CL_SUCCESS) {
+        std::cerr << "[GPU] clSetKernelArg failed for argument " << id << ": " << err << std::endl;
+        return false;
     }
     return true;
 }

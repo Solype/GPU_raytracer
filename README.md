@@ -36,11 +36,13 @@ Ce dépôt contient un raytracer simple implémenté en C++/C, utilisant OpenCL 
 
 1. **Exécuter le raytracer** depuis le dossier `build` (le kernel est chargé depuis `./kernel_gpu`) :
   ```bash
-   ./app
+   ./app              # scène finale de "Ray Tracing in One Weekend" (1200px, 500 spp)
+   ./app materials    # diffus, métal, verre creux, flou de profondeur (400px, 100 spp)
+   ./app --help
   ```
   L'image est écrite dans `image.ppm`.
 2. **Personnaliser une scène** :
-  - Modifiez `register_the_scene` dans `main.cpp` pour créer vos propres scènes.
+  - Ajoutez une fonction `scene_xxx` dans `main.cpp` (primitives + réglages caméra) et enregistrez-la dans la table `scenes` de `main`.
   - Adaptez les kernels OpenCL dans `kernel_gpu/` pour expérimenter avec le rendu.
 
 ---

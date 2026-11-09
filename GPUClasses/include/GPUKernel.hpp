@@ -18,6 +18,8 @@ namespace gpu {
             void init(gpu::Program const &prog, std::string const &entry_point);
             bool init_noexcept(gpu::Program const &prog, std::string const &entry_point) noexcept;
             bool load_params(gpu::Context const &context);
+            // scalar argument (int, float, ...) at index id
+            bool set_arg(std::size_t id, std::size_t size, void const *value);
 
         private:
             cl_kernel kernel;

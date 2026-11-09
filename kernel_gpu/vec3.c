@@ -19,6 +19,15 @@ float3 vec3_random_unit(uint *seed)
     return (float3)(r * cos(a), r * sin(a), z);
 }
 
+// uniform point in the unit disk (polar form: no rejection loop on the GPU)
+float2 vec3_random_in_unit_disk(uint *seed)
+{
+    float r = sqrt(rand01(seed));
+    float a = rand01(seed) * 2.0f * M_PI_F;
+
+    return (float2)(r * cos(a), r * sin(a));
+}
+
 float3 vec3_reflect(float3 v, float3 n)
 {
     return v - 2.0f * dot(v, n) * n;

@@ -10,12 +10,17 @@ struct ray camera_get_ray(struct camera const *cam, int i, int j, uint *seed)
     // random point inside the pixel square, for antialiasing
     float u = (float)i + rand01(seed) - 0.5f;
     float v = (float)j + rand01(seed) - 0.5f;
-    float3 center = vec3_load(cam->center);
+    float3 origin = vec3_load(cam->center);
     float3 pixel = vec3_load(cam->pixel00_loc)
         + u * vec3_load(cam->pixel_delta_u)
         + v * vec3_load(cam->pixel_delta_v);
 
-    return (struct ray){ .origin = center, .direction = normalize(pixel - center) };
+    // defocus blur: rays start anywhere on the lens disk, all meet on the focus plane
+    if (cam->defocus_angle > 0.0f) {
+        float2 p = vec3_random_in_unit_disk(seed);
+        origin += p.x * vec3_load(cam->defocus_disk_u) + p.y * vec3_load(cam->defocus_disk_v);
+    }
+    return (struct ray){ .origin = origin, .direction = normalize(pixel - origin) };
 }
 
 int scene_hits(struct ray const *ray, __global struct primitive const *primitives, uint nb_primitives, struct hits *rec)
@@ -95,27 +100,31 @@ float3 ray_color(struct ray ray, __global struct scene_data const *scene,
     return (float3)(0.0f);
 }
 
+// One pass: adds samples_per_pass linear samples to accum[pixel].
+// The host launches it several times (short launches avoid the driver
+// watchdog), then divides by the total and applies gamma.
 __kernel void compute_ray(
-    __global struct vec3 *color,
+    __global struct vec3 *accum,
     __global struct scene_data const *scene,
     __global struct primitive const *primitives,
-    __global struct material const *materials)
+    __global struct material const *materials,
+    uint pass)
 {
     uint id = get_global_id(0);
     struct camera cam = scene->cam;
     int i = id % cam.image_width;
     int j = id / cam.image_width;
-    // one random stream per pixel, advanced across samples
-    uint seed = wang_hash(scene->rand_seed ^ wang_hash(id));
+    // one random stream per pixel and per pass, advanced across samples
+    uint seed = wang_hash(id ^ wang_hash(scene->rand_seed + pass));
     float3 sum = (float3)(0.0f);
 
     if (seed == 0) {
         seed = 1;
     }
-    for (int k = 0; k < cam.sample_pixel; ++k) {
+    for (int k = 0; k < cam.samples_per_pass; ++k) {
         sum += ray_color(camera_get_ray(&cam, i, j, &seed), scene, primitives, materials, &seed);
     }
-    // gamma 2 on the averaged linear color, never per sample
-    float3 c = sqrt(clamp(sum / (float)cam.sample_pixel, 0.0f, 1.0f)) * 255.0f + 0.5f;
-    color[id] = (struct vec3){ c.x, c.y, c.z };
+    accum[id].x += sum.x;
+    accum[id].y += sum.y;
+    accum[id].z += sum.z;
 }
